@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cmb.custody.monitor.domain.related.dao.Fof4RetisMapper"> 
+    <resultMap id="BaseResultMap" type="cmb.custody.monitor.domain.related.model.Fof4Retis">
+        <id column="JJMKET" property="jjMKET" jdbcType="VARCHAR"/>
+        <result column="JJCODE" property="jjCode" jdbcType="VARCHAR"/>
+        <result column="JJNAME" property="jjName" jdbcType="VARCHAR"/>
+        <result column="JJGLRN" property="jjGLRN" jdbcType="VARCHAR"/>
+        <result column="JJTYPE" property="jjType" jdbcType="VARCHAR"/>
+    </resultMap>
+    <resultMap id="BaseResultMap2" type="cmb.custody.monitor.domain.related.model.Fof4Retis">
+        <id column="GZMKET" property="jjMKET" jdbcType="VARCHAR"/>
+        <result column="GZZQDM" property="jjCode" jdbcType="VARCHAR"/>
+        <result column="JJNAME" property="jjName" jdbcType="VARCHAR"/>
+        <result column="JJGLRN" property="jjGLRN" jdbcType="VARCHAR"/>
+        <result column="JJTYPE" property="jjType" jdbcType="VARCHAR"/>
+    </resultMap>
+    
+    <!-- 选取基金 -->
+    <select id="getFofReits"  resultMap="BaseResultMap">
+        with
+        CPJJ as (select KMMKET as GZMKET ,
+        GZZQDM from TGCORE.EVLGZ,TGCORE.MONKM where
+        GZDATE=#{monDate} AND GZCPDM=#{prdCode} and KMCPLX = #{subjectType} and GZKMDM = KMCODE
+        and KMZQLX = #{prdType} and ISFINAL = 'Y' and KMTYPE='CB' and
+        KMZQLS <![CDATA[<>]]> 'FZ' ),
+        JJXX as (select JJMKET,JJCODE, JJNAME,JJGLRN,JJTYPE from TGCORE.MONJJ where JJDATE=#{monDate}
+        )
+        select GZMKET as JJMKET,GZZQDM as JJCODE, JJNAME,JJGLRN,JJTYPE
+        from CPJJ LEFT JOIN JJXX on JJMKET = GZMKET and JJCODE = GZZQDM
+    </select>
+  
+<select id="getJJReits"  resultMap="BaseResultMap2">
+        with
+        CPJJ as (select KMMKET as GZMKET ,
+        GZZQDM from TGCORE.EVLGZ,TGCORE.MONKM where
+        GZDATE=#{monDate} AND GZCPDM=#{prdCode} and KMCPLX = #{subjectType} and GZKMDM = KMCODE
+        and KMZQLX = #{prdType} and ISFINAL = 'Y' and KMTYPE='CB' and
+        KMZQLS <![CDATA[<>]]> 'FZ' ),
+        JJXX as (select JJMKET,JJCODE, JJNAME,JJGLRN,JJTYPE from TGCORE.MONJJ where JJDATE=#{monDate}
+        )
+        select GZMKET as JJMKET,GZZQDM as JJCODE, JJNAME,JJGLRN,JJTYPE
+        from CPJJ LEFT JOIN JJXX on JJMKET = GZMKET and JJCODE = GZZQDM
+    </select>
+</mapper>

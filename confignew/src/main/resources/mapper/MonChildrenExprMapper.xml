@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.dao.MonChildrenExprDao">
+    
+    <!-- 批量插入多层树表达式 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO MON_CHILDREN_EXPR (
+            SYSTEM_ID, 
+            ORIGIN_TYPE, 
+            ORIGIN_ID, 
+            EXPR, 
+            CREATE_USER, 
+            UPDATE_USER, 
+            CREATE_TIME, 
+            UPDATE_TIME
+        ) 
+        <foreach collection="list" item="item" separator="UNION ALL">
+            SELECT 
+                #{item.systemId}, 
+                #{item.originType}, 
+                #{item.originId}, 
+                #{item.expr}, 
+                #{item.createUser}, 
+                #{item.updateUser}, 
+                SYSDATE, 
+                SYSDATE 
+            FROM DUAL
+        </foreach>
+    </insert>
+    
+</mapper> 

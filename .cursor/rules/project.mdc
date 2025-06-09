@@ -1,0 +1,13 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- 使用 jdk 1.8版本的语法
+- springboot2.7 版本规则
+- 数据库访问使用mybatis
+- sql编写规则使用ORACLE规则
+- json工具使用 alibaba fastjson

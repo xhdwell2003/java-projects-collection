@@ -1,0 +1,1063 @@
+文件全路径,方法名,行号,方法内容
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4BondDao.java,getBondJQJQ,94,"    public List<BondInfo> getBondJQJQ(String kmType, String bondType, Date monDate, String prdCode, String subjectType, Date chDate)
+            throws Exception {
+        List<BondInfo> bondInfos = new ArrayList<>();
+        StringBuilder sql = new StringBuilder();
+        sql.append(""with GZZQ as ( select KMMKET GZMKET,GZZQDM, nvl(SUM(GZSZZE),0) GZSZZE  from TGCORE.EVLGZ,TGCORE.MONKM "" +
+                ""where GZCPDM= ? and GZDATE= ?  and GZKMDM=KMCODE  and KMCPLX= ?  and ISFINAL='Y' and KMZQLX in('ZQ','ZCZQ') and KMZQLS <> 'FZ'  "");
+        if (""QJ"".equals(kmType)) {
+            // 全价
+            sql.append("" and KMTYPE in ("" + ZQ_KM_TYPE_QJ + "") "");
+        } else {
+            // 净价
+            sql.append("" and KMTYPE in ("" + ZQ_KM_TYPE_JJ + "") "");
+        }
+        sql.append("" GROUP BY GZZQDM,kmmket)"");
+        sql.append("" select GZZQDM,GZMKET,NVL(ZQXZJQ,0) ZQXZJQ,ZQSYQX,GZSZZE,ZQNAME,ZQZQLB from GZZQ "");
+        sql.append("" inner join TGCORE.MONZQ on GZMKET=ZQMKET and GZZQDM=ZQCODE and ZQDATE=? and ZQSYFW='P' and ZQSTAT='A'"");
+        if (!StringUtils.isEmpty(bondType)) {
+            sql.append("" and ZQZQLB in ("").append(bondType).append("")"");
+        }
+
+        Object[] args = {prdCode, monDate, subjectType, chDate};
+        try {
+            JdbcTemplate jdbcTemplate = new JdbcTemplate();
+            bondInfos = jdbcTemplate.queryForList(sql.toString(), args, new RowMapper<BondInfo>() {
+                @Override
+                public BondInfo mapRow(ResultSet rs, int rowNum) throws Exception {
+                    BondInfo bond = new BondInfo();
+                    //债券代码
+                    bond.setZqcode(rs.getString(""GZZQDM"").trim());
+                    //债券市场
+                    bond.setZqmket(rs.getString(""GZMKET"").trim());
+                    //债券名称
+                    bond.setZqname(rs.getString(""ZQNAME"").trim());
+                    //债券类别
+                    bond.setZqlb(rs.getString(""ZQZQLB"").trim());
+                    //修正久期
+                    bond.setZqxzjq(rs.getBigDecimal(""ZQXZJQ""));
+                    //债券市值，临时存放到票面金额中
+                    bond.setZqpmje(rs.getBigDecimal(""GZSZZE""));
+                    //债券剩余期限
+                    bond.setZqsyqx(rs.getInt(""ZQSYQX""));
+                    return bond;
+                }
+            });
+        } catch (Exception e) {
+            throw new Exception(""计算债券加权久期失败"");
+        }
+        return bondInfos;
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4BondDao.java,getBondAmountAndLimit,153,"    public List<BondInfo> getBondAmountAndLimit(String kmType, Date monDate, String prdCode, String subjectType, boolean existPenetrate)
+            throws Exception {
+        List<BondInfo> bondInfos;
+        StringBuilder sql = new StringBuilder();
+        sql.append(""with GZZQ as ( select KMMKET GZMKET,GZZQDM, nvl(SUM(GZSZZE),0) GZSZZE  from "");
+        if (existPenetrate) {
+            sql.append(ShardingTableUtil.replaceTableName(""TGCORE.MON_EVALUATION_PENETRATE"", monDate) + "", "");
+        } else {
+            sql.append(""TGCORE.EVLGZ, "");
+        }
+        sql.append(
+                ""TGCORE.MONKM where GZCPDM= ? and GZDATE= ?  and GZKMDM=KMCODE  and KMCPLX= ?  and ISFINAL='Y' and KMZQLX in('ZQ','ZCZQ') and KMZQLS <> 'FZ'  "");
+        if (""QJ"".equals(kmType)) {
+            // 全价
+            sql.append("" and KMTYPE in ("" + ZQ_KM_TYPE_QJ + "") "");
+        } else {
+            // 净价
+            sql.append("" and KMTYPE in ("" + ZQ_KM_TYPE_JJ + "") "");
+        }
+        sql.append("" GROUP BY GZZQDM,kmmket)"");
+        sql.append("" select GZZQDM,GZMKET,XJLCSYQX AS ZQSYQX,ZQSYCX,ZQNAME,GZSZZE from GZZQ "");
+        sql.append("" inner join TGCORE.MONZQ on GZMKET=ZQMKET and GZZQDM=ZQCODE and ZQDATE=? and ZQSYFW='P' and ZQSTAT='A'"");
+
+        Object[] args = {prdCode, monDate, subjectType, monDate};
+        try {
+            JdbcTemplate jdbcTemplate = new JdbcTemplate();
+            bondInfos = jdbcTemplate.queryForList(sql.toString(), args, (rs, rowNum) -> {
+                BondInfo bond = new BondInfo();
+                //债券代码
+                bond.setZqcode(rs.getString(""GZZQDM"").trim());
+                //债券市场
+                bond.setZqmket(rs.getString(""GZMKET"").trim());
+                //债券市值，临时存放到票面金额中
+                bond.setZqpmje(rs.getBigDecimal(""GZSZZE""));
+                //债券剩余期限
+                bond.setZqsyqx(rs.getInt(""ZQSYQX""));
+                //债券剩余存续期
+                bond.setZqsycx(rs.getInt(""ZQSYCX""));
+                //债券名称
+                bond.setZqname(rs.getString(""ZQNAME""));
+                //日期
+                bond.setZqdate(monDate);
+                return bond;
+            });
+        } catch (Exception e) {
+            throw new Exception(""查询债券持仓信息失败"");
+        }
+        return bondInfos;
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4BondDao.java,getHoldNumList,420,"    public List<Map<String, Object>> getHoldNumList(String prdCode, Date busDate, String subjectPrdType)
+            throws MonitorBussException, MonitorSystException {
+        StringBuilder sbSql = new StringBuilder();
+        sbSql.append(""WITH fz as("");
+        sbSql.append(""SELECT ZQCPDM,BDZQDM,SUM( ZQDCSL )AS FZSL,BDZQMC FROM TGCORE.EVLZQDC e WHERE STRDAT <= ? and ENDDAT > ? "" +
+                ""AND ZQCPDM = ? AND JYDIRT ='D' AND ZQSTAT='A' GROUP BY BDZQDM,ZQCPDM,BDZQMC ),"");
+        sbSql.append("" fm as( "");
+        sbSql.append(
+                ""SELECT KMMKET AS GZMKET,GZZQDM,GZDATE,sum(GZGZSL) AS FMSL FROM TGCORE.MONKM m ,TGCORE.EVLGZ e WHERE GZCPDM= ? AND GZDATE= ? and KMCPLX=?  AND KMCODE =GZKMDM ""
+                        +
+                        ""AND KMZQLX in('ZQ','ZCZQ') AND KMTYPE ='CB' AND ISFINAL ='Y' AND KMZQLS <>'FZ' AND KMMKET='Y' GROUP BY GZCPDM,KMMKET,GZDATE,GZZQDM) "");
+        sbSql.append(
+                "" SELECT ZQCPDM ,BDZQDM ,nvl(FZSL,0) as FZSL ,GZZQDM,GZDATE,NVL( FMSL,0) as FMSL ,NVL(GZMKET,'Y')AS GZMKET,NVL(BDZQMC,' ') as BDZQMC  FROM fz LEFT JOIN fm ON FZ.BDZQDM=FM.GZZQDM"");
+
+        JdbcTemplate jdbc = JdbcTemplate.getJdbcTemplate();
+        try {
+            return jdbc.queryForList(sbSql.toString(), busDate, busDate, prdCode, prdCode, busDate, subjectPrdType);
+        } catch (Exception e) {
+            throw new MonitorSystException(""获取借贷数量、持仓数量失败"", e);
+        }
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4BondDao.java,getHoldNumListFromHsDb,446,"    public List<Map<String, Object>> getHoldNumListFromHsDb(String prdCode, Date busDate, String subjectPrdType)
+            throws MonitorBussException, MonitorSystException {
+        //访问备库查询分子
+        StringBuilder sbSql = new StringBuilder();
+        sbSql.append("" WITH fz as("");
+        sbSql.append("" SELECT ZQCPDM,BDZQDM,SUM( ZQDCSL )AS FZSL,BDZQMC FROM TGCORE.EVLZQDC e ""
+                + "" WHERE STRDAT <= ? and ENDDAT > ? AND ZQCPDM = ? AND JYDIRT ='D' AND ZQSTAT='A' ""
+                + "" GROUP BY BDZQDM,ZQCPDM,BDZQMC )"");
+        sbSql.append("" SELECT ZQCPDM ,BDZQDM ,nvl(FZSL,0) as FZSL ,NVL(BDZQMC,' ') as BDZQMC FROM fz "");
+        Object[] fzargs = {busDate, busDate, prdCode};
+        List<Map<String, Object>> fzList;
+        try {
+            final HsDbHandler hsDbHandler = SpringContextUtil.getBean(HsDbHandler.class);
+            fzList = hsDbHandler.queryForList(sbSql.toString(), fzargs);
+        } catch (Exception e) {
+            throw new MonitorSystException(""获取借贷数量失败"", e);
+        }
+
+        //访问主库查询分母
+        sbSql.setLength(0);
+        sbSql.append("" WITH fm as( "");
+        sbSql.append("" SELECT KMMKET AS GZMKET,GZZQDM,GZDATE,sum(GZGZSL) AS FMSL FROM TGCORE.MONKM m ,TGCORE.EVLGZ e ""
+                + "" WHERE GZCPDM= ? AND GZDATE= ? and KMCPLX=?  AND KMCODE =GZKMDM ""
+                + "" AND KMZQLX in('ZQ','ZCZQ') AND KMTYPE ='CB' AND ISFINAL ='Y' AND KMZQLS <>'FZ' AND KMMKET='Y' ""
+                + "" GROUP BY GZCPDM,KMMKET,GZDATE,GZZQDM) "");
+        sbSql.append("" SELECT GZZQDM,GZDATE,NVL( FMSL,0) as FMSL ,NVL(GZMKET,'Y')AS GZMKET FROM fm "");
+        Object[] fmargs = {prdCode, busDate, subjectPrdType};
+        List<Map<String, Object>> fmList;
+        try {
+            JdbcTemplate jdbc = JdbcTemplate.getJdbcTemplate();
+            fmList = jdbc.queryForList(sbSql.toString(), fmargs);
+        } catch (Exception e) {
+            throw new MonitorSystException(""获取持仓数量失败"", e);
+        }
+        final Map<String, List<Map<String, Object>>> fmMap =
+                fmList.stream().collect(Collectors.groupingBy(fm -> Objects.isNull(fm.get(""GZZQDM"")) ? """" : (String)fm.get(""GZZQDM"")));
+
+        //LEFT JOIN处理
+        for (Map<String, Object> fz : fzList) {
+            String bdzqdm = (String)fz.get(""BDZQDM"");
+            if (fmMap.containsKey(bdzqdm)) {
+                final List<Map<String, Object>> subFmList = fmMap.get(bdzqdm);
+                if (!CollectionUtils.isEmpty(subFmList)) {
+                    final Map<String, Object> fm = subFmList.get(0);
+                    fz.put(""GZZQDM"", fm.get(""GZZQDM""));
+                    fz.put(""GZDATE"", fm.get(""GZDATE""));
+                    fz.put(""FMSL"", fm.get(""FMSL""));
+                    fz.put(""GZMKET"", fm.get(""GZMKET""));
+                }
+            } else {
+                fz.put(""GZZQDM"", null);
+                fz.put(""GZDATE"", null);
+                fz.put(""FMSL"", BigDecimal.ZERO);
+                fz.put(""GZMKET"", ""Y"");
+            }
+        }
+        return fzList;
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4BondDao.java,getHoldBonds,704,"    public List<BondGlfEntity> getHoldBonds(Date busDate, String prdCode, String subjectPrdType, String prdType)
+            throws MonitorBussException, MonitorSystException {
+        StringBuilder sbSql = new StringBuilder();
+        Object[] params;
+        if (ZbConstants.CPLX_BX.equals(prdType) || ZbConstants.CPLX_QD.equals(prdType)) {
+            sbSql.append(""with gz as ( "");
+            sbSql.append(""select BIZDATE GZDATE, PRDCODE GZCPDM, KMMKET GZMKET, SECCODE GZZQDM, SUM(STADCOST) GZCBZE, SUM(STADVAL) GZSZZE "");
+            sbSql.append(""from tgcore.evaluation,tgcore.monkm "");
+            sbSql.append(""where BIZDATE=? and PRDCODE=? and kmcplx=? and coacode=kmcode "");
+            sbSql.append(""AND KMZQLX = 'ZQ' and kmtype in('CB','YZ','JZZB01','JZZB02','JZZB03') and ISFINAL='Y' and KMZQLS <> 'FZ' "");
+            sbSql.append(""GROUP BY BIZDATE, PRDCODE, KMMKET, SECCODE), "");
+            sbSql.append(ZQ_QD_JW);
+            sbSql.append(""jnZqResult AS ( "");
+            sbSql.append(""select gz.GZMKET || ':' || gz.GZZQDM AS ZQKEY, gz.*, NVL(ZQNAME,' ') AS ZQNAME, NVL(ZQFXRN,' ') AS ZQFXRN "");
+            sbSql.append(""FROM gz "");
+            sbSql.append(""LEFT JOIN TGCORE.MONZQ ON zqdate = ? and zqmket = GZMKET and zqcode = GZZQDM  "");
+            sbSql.append(""WHERE zqstat = 'A' and ZQSYFW='P' AND ZQZQLB NOT IN ('GZ','YP','ZCJR','DFZ','ZCZQ')  "");
+            sbSql.append("") "");
+            sbSql.append(""SELECT * FROM jwzqResult UNION SELECT * FROM jnZqResult "");
+            params = new Object[]{busDate, prdCode, subjectPrdType, busDate, busDate, busDate, busDate};
+        } else {
+            sbSql.append(""WITH cczq as( "");
+            sbSql.append(""select GZDATE, GZCPDM, KMMKET AS GZMKET, GZZQDM, SUM(GZCBZE) AS GZCBZE, SUM(GZSZZE) AS GZSZZE "");
+            sbSql.append(""from TGCORE.EVLGZ,TGCORE.MONKM "");
+            sbSql.append(""where GZDATE=? and GZCPDM=? and KMCPLX=? and KMCODE=GZKMDM "");
+            sbSql.append(""and KMZQLX = 'ZQ' and KMTYPE in ('CB','YZ','JZZB01','JZZB02','JZZB03') and ISFINAL='Y' and KMZQLS <> 'FZ' "");
+            sbSql.append(""GROUP BY GZDATE, GZCPDM, KMMKET, GZZQDM) "");
+            sbSql.append(""select cczq.GZMKET || ':' || cczq.GZZQDM AS ZQKEY, cczq.*, NVL(ZQNAME,' ') ZQNAME,NVL(ZQFXRN,' ') ZQFXRN FROM cczq "");
+            sbSql.append(""LEFT JOIN TGCORE.MONZQ ON zqdate = GZDATE and zqmket = GZMKET and zqcode = GZZQDM "");
+            sbSql.append(""WHERE zqstat = 'A' and ZQSYFW='P' AND ZQZQLB NOT IN ('GZ','YP','ZCJR','DFZ','ZCZQ') "");
+            params = new Object[]{busDate, prdCode, subjectPrdType};
+        }
+        JdbcTemplate jdbc = JdbcTemplate.getJdbcTemplate();
+        try {
+            return jdbc.queryForList(sbSql.toString(), params, new RowMapper<BondGlfEntity>() {
+                @Override
+                public BondGlfEntity mapRow(ResultSet rs, int rowNum) throws Exception {
+                    BondGlfEntity res = new BondGlfEntity();
+                    res.setZqKey(rs.getString(""ZQKEY""));
+                    res.setGzDate(rs.getDate(""GZDATE""));
+                    res.setGzCpdm(rs.getString(""GZCPDM""));
+                    res.setGzMket(rs.getString(""GZMKET""));
+                    res.setGzZqdm(rs.getString(""GZZQDM""));
+                    res.setGzCbze(rs.getBigDecimal(""GZCBZE""));
+                    res.setGzSzze(rs.getBigDecimal(""GZSZZE""));
+                    res.setZqName(rs.getString(""ZQNAME""));
+                    res.setZqFxrn(rs.getString(""ZQFXRN""));
+                    return res;
+                }
+            });
+        } catch (Exception e) {
+            throw new MonitorSystException(""获取持仓债券失败"", e);
+        }
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4BondDao.java,getHoldBondsGlf,769,"    public List<BondGlfEntity> getHoldBondsGlf(Date busDate, String prdCode, String subjectPrdType, String prdType)
+            throws MonitorBussException, MonitorSystException {
+        StringBuilder sbSql = new StringBuilder();
+        Object[] params;
+        if (ZbConstants.CPLX_BX.equals(prdType) || ZbConstants.CPLX_QD.equals(prdType)) {
+            sbSql.append(""WITH gz as( "");
+            sbSql.append(""SELECT BIZDATE GZDATE, PRDCODE GZCPDM, KMMKET GZMKET, SECCODE GZZQDM, SUM(STADCOST) GZCBZE, SUM(STADVAL) GZSZZE "");
+            sbSql.append(""from TGCORE.EVALUATION ,TGCORE.MONKM "");
+            sbSql.append(""where BIZDATE=? and PRDCODE=? and KMCPLX=? and KMCODE=COACODE "");
+            sbSql.append(""and KMZQLX = 'ZQ' and KMTYPE in ('CB','YZ','JZZB01','JZZB02','JZZB03') and ISFINAL='Y' and KMZQLS <> 'FZ' "");
+            sbSql.append(""GROUP BY BIZDATE, PRDCODE, KMMKET, SECCODE ),"");
+            sbSql.append(ZQ_QD_JW);
+            sbSql.append(""jnZqResult AS ( "");
+            sbSql.append(""select gz.GZMKET || ':' || gz.GZZQDM AS ZQKEY, gz.*, NVL(ZQNAME,' ') AS ZQNAME, NVL(ZQFXRN,' ') AS ZQFXRN "");
+            sbSql.append(""FROM gz "");
+            sbSql.append(""LEFT JOIN TGCORE.MONZQ ON zqdate = ? and zqmket = GZMKET and zqcode = GZZQDM  "");
+            sbSql.append(""WHERE zqstat = 'A' and ZQSYFW='P' AND ZQZQLB NOT IN ('GZ','YP','ZCJR','DFZ','ZCZQ')  "");
+            sbSql.append(""), "");
+            sbSql.append(""cczqResult AS (SELECT * FROM jwzqResult UNION SELECT * FROM jnZqResult)"");
+            sbSql.append(""SELECT cczqResult.*,NVL(RELATED_PARTY_NAME,' ') AS GLFRN FROM cczqResult "");
+            sbSql.append(""LEFT JOIN TGCORE.MON_RELATED_PARTY ON BUSDATE = gzdate AND ZQFXRN = ISSUER_FULLNAME "");
+            sbSql.append(""ORDER BY GZZQDM,GZMKET "");
+            params = new Object[]{busDate, prdCode, subjectPrdType, busDate, busDate, busDate, busDate};
+        } else {
+            sbSql.append(""WITH cczq as( "");
+            sbSql.append(""SELECT GZDATE, GZCPDM, KMMKET AS GZMKET, GZZQDM, SUM(GZCBZE) AS GZCBZE, SUM(GZSZZE) AS GZSZZE "");
+            sbSql.append(""from TGCORE.EVLGZ,TGCORE.MONKM "");
+            sbSql.append(""where GZDATE=? and GZCPDM=? and KMCPLX=? and KMCODE=GZKMDM "");
+            sbSql.append(""and KMZQLX = 'ZQ' and KMTYPE in ('CB','YZ','JZZB01','JZZB02','JZZB03') and ISFINAL='Y'  and KMZQLS <> 'FZ' "");
+            sbSql.append(""GROUP BY GZDATE, GZCPDM, KMMKET, GZZQDM ), "");
+            sbSql.append(""cczqResult AS ( "");
+            sbSql.append(""SELECT cczq.GZMKET || ':' || cczq.GZZQDM AS ZQKEY, cczq.*, NVL(ZQNAME,' ') ZQNAME, NVL(ZQFXRN,' ') ZQFXRN FROM cczq "");
+            sbSql.append(""LEFT JOIN TGCORE.MONZQ ON zqdate = GZDATE and zqmket = GZMKET and zqcode = GZZQDM  "");
+            sbSql.append(""where zqstat = 'A' and ZQSYFW='P' AND ZQZQLB NOT IN ('GZ','YP','ZCJR','DFZ','ZCZQ') ) "");
+            sbSql.append(""SELECT cczqResult.*,NVL(RELATED_PARTY_NAME,' ') AS GLFRN FROM cczqResult "");
+            sbSql.append(""LEFT JOIN TGCORE.MON_RELATED_PARTY ON BUSDATE = gzdate AND ZQFXRN = ISSUER_FULLNAME "");
+            sbSql.append(""ORDER BY GZZQDM,GZMKET "");
+            params = new Object[]{busDate, prdCode, subjectPrdType};
+        }
+        JdbcTemplate jdbc = JdbcTemplate.getJdbcTemplate();
+        try {
+            return jdbc.queryForList(sbSql.toString(), params, new RowMapper<BondGlfEntity>() {
+                @Override
+                public BondGlfEntity mapRow(ResultSet rs, int rowNum) throws Exception {
+                    BondGlfEntity res = new BondGlfEntity();
+                    res.setZqKey(rs.getString(""ZQKEY""));
+                    res.setGzDate(rs.getDate(""GZDATE""));
+                    res.setGzCpdm(rs.getString(""GZCPDM""));
+                    res.setGzMket(rs.getString(""GZMKET""));
+                    res.setGzZqdm(rs.getString(""GZZQDM""));
+                    res.setGzCbze(rs.getBigDecimal(""GZCBZE""));
+                    res.setGzSzze(rs.getBigDecimal(""GZSZZE""));
+                    res.setZqFxrn(rs.getString(""ZQFXRN""));
+                    res.setZqGlf(rs.getString(""GLFRN""));
+                    return res;
+                }
+            });
+        } catch (Exception e) {
+            throw new MonitorSystException(""获取持仓债券对应的关联方失败"", e);
+        }
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4BondDao.java,getHoldBondsGlfDetail,842,"    getHoldBondsGlfDetail(Date busDate, String prdCode, String subjectPrdType, String zqFxrn, String prdType)
+            throws MonitorBussException, MonitorSystException {
+        StringBuilder sbSql = new StringBuilder();
+        Object[] params;
+        if (ZbConstants.CPLX_BX.equals(prdType) || ZbConstants.CPLX_QD.equals(prdType)) {
+            sbSql.append(""WITH gz as( "");
+            sbSql.append(""SELECT BIZDATE AS GZDATE,PRDCODE AS GZCPDM, "");
+            sbSql.append(""ACCCODE AS GZZHDM,COACODE AS GZKMDM,KMMKET AS GZMKET, SECCODE AS GZZQDM,STADCOST AS GZCBZE,STADVAL AS GZSZZE "");
+            sbSql.append(""from TGCORE.EVALUATION ,TGCORE.MONKM "");
+            sbSql.append(""where BIZDATE=? and PRDCODE=? and KMCPLX=? and KMCODE=COACODE "");
+            sbSql.append(""and KMZQLX = 'ZQ' and KMTYPE in ('CB','YZ','JZZB01','JZZB02','JZZB03') and ISFINAL='Y' and KMZQLS <> 'FZ' "");
+            sbSql.append(""),"");
+            sbSql.append(ZQ_QD_JW);
+            sbSql.append(""jnZqResult AS ( "");
+            sbSql.append(""select gz.GZMKET || ':' || gz.GZZQDM AS ZQKEY, gz.*, NVL(ZQNAME,' ') AS ZQNAME, NVL(ZQFXRN,' ') AS ZQFXRN "");
+            sbSql.append(""FROM gz "");
+            sbSql.append(""LEFT JOIN TGCORE.MONZQ ON zqdate = ? and zqmket = GZMKET and zqcode = GZZQDM  "");
+            sbSql.append(""WHERE zqstat = 'A' and ZQSYFW='P' AND ZQZQLB NOT IN ('GZ','YP','ZCJR','DFZ','ZCZQ')  "");
+            sbSql.append(""), "");
+            sbSql.append(""cczqResult AS (SELECT * FROM jwzqResult UNION SELECT * FROM jnZqResult) "");
+            sbSql.append(""select * from cczqResult where 1 = 1 "");
+            if (StringUtil.isNotEmpty(zqFxrn)) {
+                sbSql.append(""AND ZQFXRN in('"" + zqFxrn + ""') "");
+            }
+            sbSql.append(""ORDER BY GZZQDM,GZMKET "");
+            params = new Object[]{busDate, prdCode, subjectPrdType, busDate, busDate, busDate, busDate};
+        } else {
+            sbSql.append(""WITH cczq as( "");
+            sbSql.append(""SELECT GZDATE, GZCPDM, GZZHDM, GZKMDM, KMMKET AS GZMKET, GZZQDM,GZCBZE, GZSZZE from TGCORE.EVLGZ,TGCORE.MONKM "");
+            sbSql.append(""where GZDATE=? and GZCPDM=? and KMCPLX=? and KMCODE=GZKMDM "");
+            sbSql.append(""and KMZQLX = 'ZQ' and KMTYPE in ('CB','YZ','JZZB01','JZZB02','JZZB03') and ISFINAL='Y'  and KMZQLS <> 'FZ' "");
+            sbSql.append(""), "");
+            sbSql.append(""cczqResult AS ( "");
+            sbSql.append(""SELECT cczq.GZMKET || ':' || cczq.GZZQDM AS ZQKEY, cczq.*, NVL(ZQNAME,' ') ZQNAME, NVL(ZQFXRN,' ') ZQFXRN FROM cczq "");
+            sbSql.append(""LEFT JOIN TGCORE.MONZQ ON zqdate = GZDATE and zqmket = GZMKET and zqcode = GZZQDM "");
+            sbSql.append(""where zqstat = 'A' and ZQSYFW='P' AND ZQZQLB NOT IN ('GZ','YP','ZCJR','DFZ','ZCZQ') "");
+            if (StringUtil.isNotEmpty(zqFxrn)) {
+                sbSql.append(""AND ZQFXRN in('"" + zqFxrn + ""') "");
+            }
+            sbSql.append("") "");
+            sbSql.append(""SELECT cczqResult.* FROM cczqResult "");
+            sbSql.append(""ORDER BY GZZQDM,GZMKET "");
+            params = new Object[]{busDate, prdCode, subjectPrdType};
+        }
+        JdbcTemplate jdbc = JdbcTemplate.getJdbcTemplate();
+        try {
+            return jdbc.queryForList(sbSql.toString(), params, new RowMapper<BondGlfDetail>() {
+                @Override
+                public BondGlfDetail mapRow(ResultSet rs, int rowNum) throws Exception {
+                    BondGlfDetail res = new BondGlfDetail();
+                    res.setGzZhdm(rs.getString(""GZZHDM""));
+                    res.setGzKmdm(rs.getString(""GZKMDM""));
+                    res.setGzMket(rs.getString(""GZMKET""));
+                    res.setGzZqdm(rs.getString(""GZZQDM""));
+                    res.setZqName(rs.getString(""ZQNAME""));
+                    res.setGzCbze(rs.getBigDecimal(""GZCBZE""));
+                    res.setGzSzze(rs.getBigDecimal(""GZSZZE""));
+                    res.setZqFxrn(rs.getString(""ZQFXRN""));
+                    return res;
+                }
+            });
+        } catch (Exception e) {
+            throw new MonitorSystException(""获取持仓债券发行人及其关联方详细信息失败"", e);
+        }
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4BondDao.java,getBondCC,958,"    public List<BondInfo> getBondCC(Date monDate, String prdCode, String subjectType, Date chDate) throws Exception {
+        List<BondInfo> bondInfos = new ArrayList<>();
+        StringBuilder sql = new StringBuilder();
+        sql.append(""with GZZQ as ( select KMMKET GZMKET,GZZQDM,GZZHMC, nvl(SUM(GZSZZE),0) GZSZZE  from TGCORE.EVLGZ,TGCORE.MONKM "" +
+                ""where GZCPDM= ? and GZDATE= ?  and GZKMDM=KMCODE  and KMCPLX= ?  and ISFINAL='Y' and KMZQLX in('ZQ','ZCZQ') and KMZQLS <> 'FZ'  "");
+        // 净价
+        sql.append("" and KMTYPE in ("" + ZQ_KM_TYPE_JJ + "") "");
+        sql.append("" GROUP BY GZZQDM,KMMKET,GZZHMC)"");
+        sql.append("" select GZZQDM,GZZHMC,GZMKET,GZSZZE,nvl(ZQZQLB, ' ') ZQZQLB,nvl(ZQPJJB, ' ') ZQPJJB,nvl(ZQPJNZ, ' ') ZQPJNZ from GZZQ "");
+        sql.append("" left join TGCORE.MONZQ on GZMKET=ZQMKET and GZZQDM=ZQCODE and ZQDATE=? and ZQSYFW='P' and ZQSTAT='A'"");
+
+        Object[] args = {prdCode, monDate, subjectType, chDate};
+        try {
+            JdbcTemplate jdbcTemplate = new JdbcTemplate();
+            bondInfos = jdbcTemplate.queryForList(sql.toString(), args, new RowMapper<BondInfo>() {
+                @Override
+                public BondInfo mapRow(ResultSet rs, int rowNum) throws Exception {
+                    BondInfo bond = new BondInfo();
+                    //债券代码
+                    bond.setZqcode(rs.getString(""GZZQDM"").trim());
+                    // 债券名称
+                    bond.setZqname(rs.getString(""GZZHMC""));
+                    //债券市场
+                    bond.setZqmket(rs.getString(""GZMKET"").trim());
+                    //债券市值，临时存放到票面金额中
+                    bond.setZqpmje(rs.getBigDecimal(""GZSZZE""));
+                    // 债券类别
+                    bond.setZqlb(rs.getString(""ZQZQLB""));
+                    // 债券评级级别
+                    bond.setZqpjjb(rs.getString(""ZQPJJB""));
+                    // 债券发行主体评级（中债除外）
+                    bond.setZqpjnz(rs.getString(""ZQPJNZ""));
+
+                    return bond;
+                }
+            });
+        } catch (Exception e) {
+            throw new Exception(""查询债券持仓失败！"");
+        }
+        return bondInfos;
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4BondDao.java,getBondHoldingInfo,1055,"    public List<Map<String, Object>> getBondHoldingInfo(final Date monDate, final String prdCode, final String subjectType, final boolean isFullPrice)
+            throws SQLException {
+        StringBuilder sql = new StringBuilder();
+        //估值表债券、资产支持证券持仓
+        sql.append(""with cczq as ( "");
+        sql.append(""  select GZZHDM ACCOUNT, GZZQDM as SECCODE, KMMKET as MARKET, GZSZZE, KMTZFL,KMZQLX "");
+        sql.append(""  from TGCORE.EVLGZ, TGCORE.MONKM where GZCPDM=? and GZDATE=?  and  GZKMDM=KMCODE "");
+        sql.append(""  and KMCPLX=? and KMZQLX in ('ZQ', 'ZCZQ') and "");
+        if (isFullPrice) {
+            sql.append("" KMTYPE in ('CB','LX','YJLX') "");
+        } else {
+            sql.append("" KMTYPE in ('CB') "");
+        }
+        sql.append("" and KMZQLS<>'FZ' and ISFINAL='Y' ),"");
+        //关联账户重分类表，取出调整后的投资分类,并提出除资产支持证券外的持有到期债券
+        sql.append(""cczqfl as (select SECCODE,MARKET,GZSZZE, NVL(INVEST_CLASSIFY, KMTZFL) as TZFL,KMZQLX from cczq "");
+        sql.append(""  left join (select ACCOUNT_CODE, INVEST_CLASSIFY from TGCORE.MON_INVEST_RECLASSIFY where PRD_CODE=?"" +
+                "" and ? between START_DATE and END_DATE "" +
+                "" and STATUS='A') cfl"");
+        sql.append(""  on cfl.ACCOUNT_CODE=cczq.ACCOUNT ),"");
+
+        sql.append("" cczqhz as (select SECCODE,MARKET,TZFL,sum(GZSZZE) AMOUNT from cczqfl where KMZQLX='ZCZQ' or TZFL<>'F' ""
+                + ""group by SECCODE,MARKET,TZFL), "");
+
+        sql.append(""chzq as (select ZQCODE,ZQMKET,ZQNAME,ZQSILB,ZQYXZQ,ZQFXRN, ZQSTRD ,ZQENDD,ZQLVLX,ZQFXCS,ZQQLTK,ZQHSRQ,ZQFXFS,ZQSYQX  "")
+                .append(""from TGCORE.MONZQ where ZQDATE = ? and ZQSYFW='P' and ZQSTAT='A' ),"");
+
+        sql.append("" zzq as ( select SECCODE, MARKET, AMOUNT,TZFL,ZQNAME as SECNAME, ZQSILB, ZQYXZQ,ZQFXRN, ZQSTRD ,""
+                + ""ZQENDD,ZQLVLX,ZQFXCS ,ZQQLTK,ZQHSRQ,ZQFXFS,ZQSYQX "");
+        sql.append("" from cczqhz left join chzq on ZQCODE = SECCODE and ZQMKET = MARKET ) "");
+        //剔除交易类政府性银行发行的二级资本债（以及次级债）
+        sql.append("" select SECCODE, MARKET, SECNAME, TZFL,AMOUNT, ZQSILB as SILB, ZQSTRD ,ZQENDD,ZQLVLX ,ZQFXCS ,""
+                + ""ZQQLTK,ZQHSRQ,ZQFXFS,ZQSYQX ,'债券' as SECTYPE ""
+                + ""from  zzq A where not exists(select 1 from zzq B where B.TZFL='C' and (B.zqsilb in ('ZBZ','CJZ') or B.ZQYXZQ = 'Y') ""
+                + ""and B.ZQFXRN in ('国家开发银行','中国进出口银行','中国农业发展银行') AND A.SECCODE=B.SECCODE AND A.MARKET=B.MARKET)"");
+
+        Object[] args = {prdCode, monDate, subjectType, prdCode, monDate, monDate};
+        JdbcTemplate jdbcTemplate = new JdbcTemplate();
+        return jdbcTemplate.queryForList(sql.toString(), args);
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4BondDao.java,getBondHoldingInfo4PreMon,1108,"    public List<Map<String, Object>> getBondHoldingInfo4PreMon(final java.util.Date zlDate,
+                                                               final java.util.Date evlDate,
+                                                               final java.util.Date chDate,
+                                                               final String prdCode,
+                                                               final String subjectType,
+                                                               final boolean isFullPrice)
+            throws SQLException {
+        StringBuilder sql = new StringBuilder();
+        //估值表债券、资产支持证券持仓
+        sql.append(""with "");
+        sql.append(""cczq as ( "");
+        sql.append(""  select GZZHDM as ACCOUNT, GZZQDM as SECCODE, KMMKET as MARKET, GZSZZE, KMTZFL,KMZQLX "");
+        sql.append(""  from TGCORE.EVLGZ, TGCORE.MONKM where GZCPDM=? and GZDATE=?  and  GZKMDM=KMCODE "");
+        sql.append(""  and KMCPLX=? and KMZQLX in ('ZQ', 'ZCZQ') and "");
+        if (isFullPrice) {
+            sql.append("" KMTYPE in ('CB','LX','YJLX') "");
+        } else {
+            sql.append("" KMTYPE in ('CB') "");
+        }
+        sql.append("" and KMZQLS<>'FZ' and ISFINAL='Y' "");
+        sql.append("" union all"");
+        //当天所有的银行间交易指令，卖债金额为负
+        sql.append("" select ACCCODE as ACCOUNT, zlzqdm  as SECCODE ,'Y' as MARKET, "");
+        if (isFullPrice) {
+            sql.append(""(case zljylx when 'S' then -ZLQJJE else ZLQJJE end) as GZSZZE,"");
+        } else {
+            sql.append(""(case zljylx when 'S' then -zljjje else zljjje end) as GZSZZE,"");
+        }
+        sql.append("" zltzfl as KMTZFL, 'X' as KMZQLX from tgcore.MON_ZL_YHJZQZL "");
+        sql.append("" where zlcpdm = ? and zldate = ?  "");
+        sql.append("" union all "");
+        //网下申购的 ,用的是期望日期为今天的
+        sql.append("" select ACCCODE as ACCOUNT, zlzqdm as SECCODE,zlmket as MARKET,zljyje as GZSZZE,zltzfl as KMTZFL,'X' as KMZQLX from tgcore""
+                + "".MON_ZL_WXXZZL where ""
+                + ""zlcpdm = ? and zldate = ? "");
+        sql.append("" union all "");
+        //T+0的，用的是期望日期为今天的
+        sql.append("" select ACCCODE as ACCOUNT, zlzqdm as SECCODE,zlmket as MARKET,zljyje as GZSZZE,zltzfl as KMTZFL,'X' as KMZQLX from tgcore""
+                + "".MON_ZL_HSTLZL ""
+                + ""where zlcpdm ""
+                + ""= ? and zlqwrq = ? "");
+        sql.append("" ),"");
+        //关联账户重分类表，取出调整后的投资分类,并提出除资产支持证券外的持有到期债券
+        sql.append(""cczqfl as (select SECCODE,MARKET,GZSZZE, NVL(INVEST_CLASSIFY, KMTZFL) as TZFL from cczq "");
+        sql.append(""  left join (select ACCOUNT_CODE, INVEST_CLASSIFY from TGCORE.MON_INVEST_RECLASSIFY where PRD_CODE=? "" +
+                "" and ? between START_DATE and END_DATE "" +
+                ""and STATUS='A') cfl"");
+        sql.append(""  on cfl.ACCOUNT_CODE=cczq.ACCOUNT where KMZQLX in ('ZCZQ','X') or KMTZFL<>'F'),"");
+        //按证券代码、市场、投资分类汇总
+        sql.append(""zqflhz as (select SECCODE,MARKET,TZFL,sum(GZSZZE) as AMOUNT from cczqfl group by SECCODE,MARKET,TZFL), "");
+
+        sql.append(""chzq as (select ZQCODE,ZQMKET,ZQNAME,ZQSILB,ZQYXZQ,ZQFXRN,ZQSYQX,ZQSTRD,ZQENDD,ZQFXFS,ZQLVLX,ZQFXCS,ZQQLTK,ZQHSRQ "")
+                .append(""from TGCORE.MONZQ where ZQDATE = ? and ZQSYFW='P' and ZQSTAT='A' ),"");
+
+        sql.append("" zzq as ( select SECCODE, MARKET, AMOUNT,TZFL,ZQNAME as SECNAME, ZQSILB, ZQFXRN,ZQSYQX,ZQYXZQ,ZQSTRD,ZQENDD,ZQFXFS,ZQLVLX,ZQFXCS,""
+                + ""ZQQLTK,ZQHSRQ "");
+        sql.append("" from zqflhz left join chzq on ZQCODE = SECCODE and ZQMKET = MARKET where ZQSILB='ZCZQ' or ZQSILB is NULL or TZFL<>'F')"");
+        //剔除交易类政府性银行发行的二级资本债（以及次级债）
+        sql.append("" select SECCODE, MARKET, SECNAME, TZFL,AMOUNT, ZQSILB as SILB, ZQSTRD ,ZQENDD,ZQFXFS,ZQLVLX,ZQFXCS,ZQQLTK,ZQHSRQ,ZQSYQX,'债券' as ""
+                + ""SECTYPE ""
+                + ""from  zzq A""
+                + "" where not exists(select 1 from zzq B where B.TZFL='C' and (B.zqsilb in ('ZBZ','CJZ') or B.ZQYXZQ = 'Y') and B.ZQFXRN in ""
+                + ""('国家开发银行',""
+                + ""'中国进出口银行','中国农业发展银行') AND A.SECCODE=B.SECCODE AND A.MARKET=B.MARKET)"");
+
+        Object[] args = {prdCode, evlDate, subjectType,
+                prdCode, zlDate,
+                prdCode, zlDate,
+                prdCode, zlDate,
+                prdCode, evlDate,
+                chDate};
+        JdbcTemplate jdbcTemplate = new JdbcTemplate();
+        return jdbcTemplate.queryForList(sql.toString(), args);
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4BondDao.java,getBondHoldingInfo4PreMon4Detail,1193,"    public List<Map<String, Object>> getBondHoldingInfo4PreMon4Detail(final java.util.Date zlDate,
+                                                               final java.util.Date evlDate,
+                                                               final java.util.Date chDate,
+                                                               final String prdCode,
+                                                               final String subjectType,
+                                                               final boolean isFullPrice)
+            throws SQLException {
+        StringBuilder sql = new StringBuilder();
+        //估值表债券、资产支持证券持仓
+        sql.append(""with "");
+        sql.append(""cczq as ( "");
+        sql.append(""  select GZZHDM as ACCOUNT, GZZQDM as SECCODE, KMMKET as MARKET, GZSZZE, KMTZFL,'T-1' AS SQDATAFROM,KMZQLX "");
+        sql.append(""  from TGCORE.EVLGZ, TGCORE.MONKM where GZCPDM=? and GZDATE=?  and  GZKMDM=KMCODE "");
+        sql.append(""  and KMCPLX=? and KMZQLX in ('ZQ', 'ZCZQ') and "");
+        if (isFullPrice){
+            sql.append("" KMTYPE in ('CB','LX','YJLX') "");
+        } else {
+            sql.append("" KMTYPE in ('CB') "");
+        }
+        sql.append("" and KMZQLS<>'FZ' and ISFINAL='Y' "");
+        sql.append("" union all"");
+        //当天所有的银行间交易指令，卖债金额为负
+        sql.append("" select ACCCODE as ACCOUNT, zlzqdm  as SECCODE ,'Y' as MARKET, "");
+        if (isFullPrice){
+            sql.append(""(case zljylx when 'S' then -ZLQJJE else ZLQJJE end) as GZSZZE,"");
+        } else {
+            sql.append(""(case zljylx when 'S' then -zljjje else zljjje end) as GZSZZE,"");
+        }
+        sql.append("" zltzfl as KMTZFL,'T' AS SQDATAFROM, 'X' as KMZQLX from tgcore.MON_ZL_YHJZQZL "");
+        sql.append("" where zlcpdm = ? and zldate = ?  "");
+        sql.append("" union all "");
+        //网下申购的 ,用的是期望日期为今天的
+        sql.append("" select ACCCODE as ACCOUNT, zlzqdm as SECCODE,zlmket as MARKET,zljyje as GZSZZE,zltzfl as KMTZFL,'T' AS SQDATAFROM,'X' as KMZQLX from tgcore""
+                + "".MON_ZL_WXXZZL where ""
+                + ""zlcpdm = ? and zldate = ? "");
+        sql.append("" union all "");
+        //T+0的，用的是期望日期为今天的
+        sql.append("" select ACCCODE as ACCOUNT, zlzqdm as SECCODE,zlmket as MARKET,zljyje as GZSZZE,zltzfl as KMTZFL,'T' AS SQDATAFROM,'X' as KMZQLX from tgcore""
+                + "".MON_ZL_HSTLZL ""
+                + ""where zlcpdm ""
+                + ""= ? and zlqwrq = ? "");
+        sql.append("" ),"");
+        //关联账户重分类表，取出调整后的投资分类,并提出除资产支持证券外的持有到期债券
+        sql.append(""cczqfl as (select SECCODE,MARKET,GZSZZE, NVL(INVEST_CLASSIFY, KMTZFL) as TZFL,SQDATAFROM from cczq "");
+        sql.append(""  left join (select ACCOUNT_CODE, INVEST_CLASSIFY from TGCORE.MON_INVEST_RECLASSIFY where PRD_CODE=? "" +
+                "" and ? between START_DATE and END_DATE "" +
+                ""and STATUS='A') cfl"");
+        sql.append(""  on cfl.ACCOUNT_CODE=cczq.ACCOUNT where KMZQLX in ('ZCZQ','X') or KMTZFL<>'F'),"");
+        //按证券代码、市场、投资分类汇总
+        sql.append(""zqflhz as (select SECCODE,MARKET,TZFL,SQDATAFROM,GZSZZE as AMOUNT from cczqfl), "");
+
+        sql.append(""chzq as (select ZQCODE,ZQMKET,ZQNAME,ZQSILB,ZQYXZQ,ZQFXRN,ZQSYQX,ZQSTRD,ZQENDD,ZQFXFS,ZQLVLX,ZQFXCS,ZQQLTK,ZQHSRQ "")
+                .append(""from TGCORE.MONZQ where ZQDATE = ? and ZQSYFW='P' and ZQSTAT='A' ),"");
+
+        sql.append("" zzq as ( select SECCODE, MARKET, AMOUNT,TZFL,SQDATAFROM,ZQNAME as SECNAME, ZQSILB, ZQFXRN,ZQSYQX,ZQYXZQ,ZQSTRD,ZQENDD,ZQFXFS,ZQLVLX,"" +
+                ""ZQFXCS,""
+                + ""ZQQLTK,ZQHSRQ "");
+        sql.append("" from zqflhz left join chzq on ZQCODE = SECCODE and ZQMKET = MARKET where ZQSILB='ZCZQ' or ZQSILB is NULL or TZFL<>'F')"");
+        //剔除交易类政府性银行发行的二级资本债（以及次级债）
+        sql.append("" select SECCODE, MARKET, SECNAME, TZFL,SQDATAFROM,AMOUNT, ZQSILB as SILB, ZQSTRD ,ZQENDD,ZQFXFS,ZQLVLX,ZQFXCS,ZQQLTK,ZQHSRQ,ZQSYQX,'债券' as ""
+                + ""SECTYPE ""
+                + ""from  zzq A""
+                + "" where not exists(select 1 from zzq B where B.TZFL='C' and (B.zqsilb in ('ZBZ','CJZ') or B.ZQYXZQ = 'Y') and B.ZQFXRN in ""
+                + ""('国家开发银行',""
+                + ""'中国进出口银行','中国农业发展银行') AND A.SECCODE=B.SECCODE AND A.MARKET=B.MARKET)"");
+
+        Object[] args = {prdCode, evlDate, subjectType,
+                prdCode, zlDate,
+                prdCode, zlDate,
+                prdCode, zlDate,
+                prdCode, evlDate,
+                chDate};
+        JdbcTemplate jdbcTemplate = new JdbcTemplate();
+        return jdbcTemplate.queryForList(sql.toString(), args);
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4BondDao.java,getForbiddenBondHolding,1575,"    public List<SecurityBaseEntity> getForbiddenBondHolding(final String prdCode, final java.util.Date monDate,
+                                                            final String subjectType, final String forbiddenType)
+            throws SQLException {
+        StringBuilder sql = new StringBuilder(128);
+        sql.append(""with gz as (select GZZQDM, KMMKET from TGCORE.EVLGZ, TGCORE.MONKM where GZCPDM=? and GZDATE=? and KMCPLX=?  and GZKMDM=KMCODE ""
+                + ""and KMTYPE='CB' and ISFINAL='Y' and KMZQLX in ('ZQ', 'ZCZQ') and KMZQLS<>'FZ') "");
+        sql.append(""select distinct GZZQDM,KMMKET, nvl(ZQNAME,' ') as ZQNAME, nvl(ZQSILB,' ') as ZQSILB from gz left join ""
+                + ""(select ZQCODE,ZQMKET,ZQSILB,ZQNAME from TGCORE.MONZQ ""
+                + ""where ZQDATE=? and ZQSTAT='A' and ZQSYFW='P') ""
+                + ""on  ZQMKET =KMMKET and ZQCODE = GZZQDM where ZQSILB in ("").append(forbiddenType).append("") or trim(ZQSILB) is null "");
+        Object[] args = new Object[]{prdCode, monDate, subjectType, monDate};
+
+        JdbcTemplate jdbcTemplate = JdbcTemplate.getJdbcTemplate();
+        return jdbcTemplate.queryForList(sql.toString(), args, new RowMapper<SecurityBaseEntity>() {
+            @Override
+            public SecurityBaseEntity mapRow(final ResultSet rs, final int rowNum) throws Exception {
+                SecurityBaseEntity e = new SecurityBaseEntity();
+                e.setSecCode(rs.getString(""GZZQDM"").trim());
+                e.setSecType(rs.getString(""ZQSILB"").trim());
+                e.setSecMarket(rs.getString(""KMMKET"").trim());
+                e.setSecName(rs.getString(""ZQNAME"").trim());
+                return e;
+            }
+        });
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4BondDao.java,getHoldingBondIncludeZyq,1601,"    public List<TyglrtyzqblEntity> getHoldingBondIncludeZyq(MonObject monObject, java.util.Date monDate, boolean isShowDetail)
+            throws MonitorBussException {
+        //科目产品类型
+        SubjectConfig subjectConfig = SpringContextUtil.getBean(SubjectConfig.class);
+        String subjectType = subjectConfig.getSubjectType(monObject.getPrdEntity(), monDate);
+        StringBuilder sql = new StringBuilder(512);
+        sql.append(""with zq as (select ZQCODE, ZQMKET,ZQNAME, ZQCLGM,ZQZQLB from tgcore.MONZQ where ZQDATE=? and ZQSTAT='A' and ZQSYFW='P'),"");
+        //本产品持仓债券
+        if (ProductTypeUtil.isBXorQD(monObject.getPrdType())) {
+            sql.append(
+                            ""cczq as (select SECCODE as GZZQDM, KMMKET from tgcore.EVALUATION, tgcore.MONKM where PRDCODE=? and BIZDATE=? and KMCPLX=? and "")
+                    .append(""COACODE=KMCODE and KMTYPE='CB' and ISFINAL='Y' and KMZQLX in ('ZQ', 'ZCZQ') and KMZQLS<>'FZ'),"");
+        } else {
+            sql.append(""cczq as (select GZZQDM, KMMKET from tgcore.EVLGZ, tgcore.MONKM where GZCPDM=? and GZDATE=? and KMCPLX=? and "")
+                    .append(""GZKMDM=KMCODE and KMTYPE='CB' and ISFINAL='Y' and KMZQLX in ('ZQ', 'ZCZQ') and KMZQLS<>'FZ'),"");
+        }
+
+
+        sql.append(""cczqgm as (select GZZQDM, KMMKET, ZQNAME, ZQCLGM,ZQZQLB from cczq left join zq "")
+                .append(""on ZQMKET =KMMKET and ZQCODE = GZZQDM where ZQZQLB not in ('GZ','YP','ZCJR','DFZ','KZZ','JHGS') or ZQZQLB is null),"");
+        //本产品持仓质押债券
+        sql.append(""zyq as (select ZYZYDM as GZZQDM,ZYMKET as KMMKET from tgcore.JYSQTQS, TGCORE.JYSNHGZY where ZYCPDM=QSCPDM and "")
+                .append(""ZYDATE=QSQTRQ and ZYMKET=QSMKET and QSCJBH=ZYCJBH and ZYCRTD<? and ZYSTAT='A' "")
+                .append(""and QSCPDM=? and QSMMBZ='S' AND qsstat ='A' and qsywbz = 'ZQLQ'  AND qsqtrq <= ?  AND qsqtrq + TO_NUMBER(qszqdm) > ? "")
+                .append(""group by ZYZYDM, ZYMKET having sum(ZYCJSL) > 0),"");
+        sql.append(""zyqgm as (select GZZQDM, KMMKET, ZQNAME, ZQCLGM,ZQZQLB from zyq, zq where ZQMKET =KMMKET and ZQCODE = GZZQDM "")
+                .append(""and ZQZQLB not in ('GZ','YP','ZCJR','DFZ','KZZ','JHGS')),"");
+        //本产品持仓的债券和质押券
+        sql.append(""cpcc as (select GZZQDM, KMMKET, ZQNAME, ZQCLGM,ZQZQLB from cczqgm "")
+                .append(""union "")
+                .append(""select GZZQDM, KMMKET, ZQNAME, ZQCLGM,ZQZQLB from zyqgm),"");
+        //本产品的管理人下的所有产品
+        sql.append(""glrcp as (select CPCODE,CPCPLX from tgcore.MONPR, (select CPMNAM as MANAGER from tgcore.MONPR where CPCODE=?) "")
+                .append(""where upper(REGEXP_REPLACE(trim(CPMNAM), '[()（）]', '')) = upper(REGEXP_REPLACE(trim(MANAGER), '[()（）]', ''))),"");
+        sql.append(""glrcpkm as( select CPCODE,CPCPLX,SUBJECT_TYPE from glrcp join (select PRD_TYPE,SUBJECT_TYPE,"")
+                .append(""ROW_NUMBER() over(partition by PRD_TYPE order by SEQN desc) as "")
+                .append(""rn from TGCORE.MON_PROD_SUBJECT where ? between START_DATE and END_DATE) a on CPCPLX=PRD_TYPE and rn=1 ), "");
+        //管理人持仓本产品持仓的债券
+        sql.append(""glrcczq as (select CPCODE, GZZHDM, GZZQDM, KMMKET, GZGZSL from tgcore.EVLGZ, tgcore.MONKM, glrcpkm "")
+                .append(""where GZCPDM=CPCODE and KMCPLX=SUBJECT_TYPE and "")
+                .append(""GZDATE=? and GZKMDM=KMCODE and KMTYPE='CB' and ISFINAL='Y' and KMZQLX in ('ZQ', 'ZCZQ') and KMZQLS<>'FZ' "");
+        sql.append("" union all "");
+        sql.append(""select CPCODE, ACCCODE as GZZHDM,SECCODE as GZZQDM, KMMKET, EVLQTY as GZGZSL from TGCORE.EVALUATION, tgcore.MONKM, glrcpkm "")
+                .append(""where PRDCODE=CPCODE and BIZDATE=? and COACODE=KMCODE and KMCPLX=SUBJECT_TYPE "")
+                .append(""and KMTYPE='CB' and ISFINAL='Y' and KMZQLX in ('ZQ', 'ZCZQ') and KMZQLS<>'FZ' and KMKMBZ='CNY' and KMBZXX<>'OVERSEA'"");
+        sql.append("" union all "");
+        sql.append("" select CPCODE, '质押券' as GZZHDM,ZYZYDM as GZZQDM,ZYMKET as KMMKET, sum(ZYCJSL) as GZGZSL "")
+                .append(""from tgcore.JYSQTQS, TGCORE.JYSNHGZY, glrcpkm "")
+                .append(""where ZYCPDM=QSCPDM and ZYDATE=QSQTRQ and ZYMKET=QSMKET "")
+                .append(""and QSCJBH=ZYCJBH and QSCPDM=CPCODE and QSMMBZ='S' AND qsstat ='A' and qsywbz = 'ZQLQ'  AND qsqtrq <= ?  AND "")
+                .append("" qsqtrq + TO_NUMBER(qszqdm) > ? and ZYCRTD<? and ZYSTAT='A' group by CPCODE, ZYZYDM,ZYMKET having sum(ZYCJSL) > 0)"");
+
+        if (isShowDetail) {
+            sql.append("" select glrcczq.CPCODE, GZZHDM, glrcczq.GZZQDM, glrcczq.KMMKET, GZGZSL, ZQNAME, ZQCLGM,ZQZQLB from glrcczq, cpcc where "")
+                    .append(""glrcczq.GZZQDM=cpcc.GZZQDM "")
+                    .append(""and glrcczq.KMMKET=cpcc.KMMKET order by glrcczq.CPCODE, GZZHDM, glrcczq.GZZQDM"");
+        } else {
+            sql.append("" select glrcczq.GZZQDM, glrcczq.KMMKET, sum(GZGZSL) as GZGZSL, ZQNAME, ZQCLGM,ZQZQLB from glrcczq, cpcc "")
+                    .append(""where glrcczq.GZZQDM=cpcc.GZZQDM "")
+                    .append(""and glrcczq.KMMKET=cpcc.KMMKET group by glrcczq.GZZQDM, glrcczq.KMMKET, ZQNAME, ZQCLGM,ZQZQLB"");
+        }
+
+
+        Object[] args = new Object[]{monDate,
+                monObject.getValue(), monDate, subjectType,
+                monDate, monObject.getValue(), monDate, monDate,
+                monObject.getValue(), monDate,
+                monDate, monDate, monDate, monDate, monDate};
+
+        JdbcTemplate jdbcTemplate = JdbcTemplate.getJdbcTemplate();
+        try {
+            return jdbcTemplate.queryForList(sql.toString(), args, new RowMapper<TyglrtyzqblEntity>() {
+                @Override
+                public TyglrtyzqblEntity mapRow(final ResultSet rs, final int rowNum) throws Exception {
+                    TyglrtyzqblEntity entity = new TyglrtyzqblEntity();
+                    entity.setSecName(rs.getString(""ZQNAME""));
+                    entity.setSecCode(rs.getString(""GZZQDM"").trim());
+                    entity.setSecMarket(rs.getString(""KMMKET"").trim());
+                    entity.setGzgzsl(rs.getBigDecimal(""GZGZSL""));
+                    entity.setScale(rs.getBigDecimal(""ZQCLGM""));
+                    entity.setBondType(rs.getString(""ZQZQLB""));
+                    if (isShowDetail) {
+                        entity.setAccount(rs.getString(""GZZHDM""));
+                        entity.setPrdCode(rs.getString(""CPCODE""));
+                    }
+                    return entity;
+                }
+            });
+        } catch (Exception e) {
+            throw new MonitorBussException(""获取管理人持仓债券数据失败"", e);
+        }
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4BondDao1.java,getBondValue4Held2MaturityI9,29,"    public List<BondInfo> getBondValue4Held2MaturityI9(String prdCode, Date monDate, String subjectType,
+                                                       boolean isFullPrice) throws MonitorBussException, MonitorSystException {
+        StringBuilder sb = new StringBuilder();
+        /**
+         * 获取业务日该产品的估值信息
+         */
+        sb.append(""with cczq as ( "");
+        sb.append(""  select GZZHDM ACCOUNT, GZZQDM as SECCODE, KMMKET as MARKET, GZSZZE, KMTZFL,KMZQLX "");
+        sb.append(""  from TGCORE.EVLGZ, TGCORE.MONKM where GZCPDM=? and GZDATE=?  and  GZKMDM=KMCODE "");
+        sb.append(""  and KMCPLX=? and KMZQLX = 'ZQ' and "");
+        if (isFullPrice){
+            sb.append("" KMTYPE in ('CB','LX','YJLX') "");
+        } else {
+            sb.append("" KMTYPE in ('CB') "");
+        }
+        sb.append("" and KMZQLS<>'FZ' and ISFINAL='Y' ),"");
+        sb.append(""cczqfl as (select SECCODE,MARKET,GZSZZE, NVL(INVEST_CLASSIFY, KMTZFL) as TZFL,KMZQLX from cczq "");
+        sb.append(""  left join (select ACCOUNT_CODE, INVEST_CLASSIFY from TGCORE.MON_INVEST_RECLASSIFY where PRD_CODE=? "" +
+                "" and ? between START_DATE and END_DATE "" +
+                ""and STATUS='A') cfl on cfl.ACCOUNT_CODE=cczq.ACCOUNT ),"");
+        sb.append("" cczqhz as (select SECCODE,MARKET,TZFL,sum(GZSZZE) AMOUNT from cczqfl where TZFL in ('F','C') ""
+                + ""group by SECCODE,MARKET,TZFL), "");
+        /*
+         * 获取业务日该产品的债券信息
+         */
+        sb.append(BOND_INFO_SQL);
+        /**
+         * 得到其持仓金额（市值总额）和剩余期限
+         */
+        sb.append(""select AMOUNT,SYQX,SECCODE,MARKET,ZQCODE,TZFL, zqsilb, ZQNAME from ("");
+        sb.append(""select AMOUNT,"")
+                .append(this.getRemainderDaysSql4I9(monDate))
+                .append("" as SYQX,SECCODE,MARKET,NVL(ZQCODE,' ') ZQCODE,TZFL,NVL(ZQSILB,' ') as zqsilb,ZQNAME from cczqhz left ""
+                        + ""join "");
+        sb.append(""ZQ on MARKET=ZQMKET and SECCODE=ZQCODE and ZQDATE=? and ZQSTAT='A' "");
+        sb.append(""where TZFL ='F' or ( TZFL ='C' and (zqsilb in ('CJZ','ZBZ') or zqyxzq='Y') and ZQFXRN in ""
+                + ""('国家开发银行','中国进出口银行','中国农业发展银行')  ))"");
+
+        JdbcTemplate jdbcTemplate = JdbcTemplate.getJdbcTemplate();
+        Object[] args = {prdCode, monDate, subjectType, prdCode, monDate, monDate, getFuzzyPrdCode(prdCode), monDate, monDate};
+        try {
+            return jdbcTemplate.queryForList(sb.toString(), args,
+                    new RowMapper<BondInfo>() {
+                        @Override
+                        public BondInfo mapRow(ResultSet rs, int count)
+                                throws Exception {
+                            BondInfo bondInfo = new BondInfo();
+                            // 为例方便处理这里把持仓金额放到发行价格里去 ,后面要用的时候注意
+                            bondInfo.setZqfxjg(rs.getBigDecimal(""AMOUNT""));
+                            // 为例方便处理这里把剩余期限放到存量规模里去 ,后面要用的时候注意
+                            bondInfo.setZqclgm(rs.getBigDecimal(""SYQX""));
+                            bondInfo.setZqcode(rs.getString(""SECCODE""));
+                            bondInfo.setZqmket(rs.getString(""MARKET""));
+                            bondInfo.setZqfxjc(rs.getString(""ZQNAME""));
+                            // 债券名称存放用于判断债券数据是否存在的债券代码
+                            bondInfo.setZqname(rs.getString(""ZQCODE""));
+                            bondInfo.setZqfxzq(rs.getString(""TZFL""));
+                            bondInfo.setZqsilb(rs.getString(""zqsilb""));
+                            return bondInfo;
+                        }
+                    });
+        } catch (Exception e) {
+            throw new MonitorSystException(e.toString(), e);
+        }
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4BondDao1.java,getcczq4CydqI9,157,"    public List<BondInfo> getcczq4CydqI9(String prdCode, Date chDate, Date qxDate, String subjectType,
+                                         boolean isFullPrice) throws MonitorBussException, MonitorSystException {
+        StringBuilder sb = new StringBuilder();
+        // 取上日持仓的债券
+        // 持有到期1111（非资产支持证券）
+        sb.append(""with "");
+        sb.append(""cczq as ( "");
+        sb.append(""  select GZZHDM as ACCOUNT, GZZQDM as SECCODE, KMMKET as MARKET, GZSZZE, KMTZFL "");
+        sb.append(""  from TGCORE.EVLGZ, TGCORE.MONKM where GZCPDM=? and GZDATE=?  and  GZKMDM=KMCODE "");
+        sb.append(""  and KMCPLX=? and KMZQLX = 'ZQ' and "");
+        if (isFullPrice){
+            sb.append("" KMTYPE in ('CB','LX','YJLX') "");
+        } else {
+            sb.append("" KMTYPE in ('CB') "");
+        }
+        sb.append("" and KMZQLS<>'FZ' and ISFINAL='Y' "");
+        sb.append("" union all"");
+        //当天所有的银行间交易指令，卖债金额为负
+        sb.append("" select ACCCODE as ACCOUNT, zlzqdm  as SECCODE ,'Y' as MARKET, "");
+        if (isFullPrice){
+            sb.append(""(case zljylx when 'S' then -ZLQJJE else ZLQJJE end) as GZSZZE,"");
+        } else {
+            sb.append(""(case zljylx when 'S' then -zljjje else zljjje end) as GZSZZE,"");
+        }
+        sb.append("" zltzfl as KMTZFL from tgcore.MON_ZL_YHJZQZL "");
+        sb.append("" where zlcpdm = ? and zldate = ?  "");
+        sb.append("" union all "");
+        //网下申购的 ,用的是期望日期为今天的
+        sb.append("" select ACCCODE as ACCOUNT, zlzqdm as SECCODE,zlmket as MARKET,zljyje as GZSZZE,zltzfl as KMTZFL "" +
+                ""from tgcore.MON_ZL_WXXZZL where zlcpdm = ? and zldate = ? "");
+        sb.append("" union all "");
+        //T+0的，用的是期望日期为今天的
+        sb.append("" select ACCCODE as ACCOUNT, zlzqdm as SECCODE,zlmket as MARKET,zljyje as GZSZZE,zltzfl as KMTZFL "" +
+                ""from tgcore.MON_ZL_HSTLZL where zlcpdm = ? and zlqwrq = ? "");
+        sb.append("" ),"");
+        //关联账户重分类表，取出调整后的投资分类,并提出除资产支持证券外的持有到期债券
+        sb.append(""cczqfl as (select SECCODE,MARKET,GZSZZE, NVL(INVEST_CLASSIFY, KMTZFL) as TZFL from cczq "");
+        sb.append(""  left join (select ACCOUNT_CODE, INVEST_CLASSIFY from TGCORE.MON_INVEST_RECLASSIFY where PRD_CODE=?"" +
+                "" and ? between START_DATE and END_DATE "" +
+                "" and STATUS='A') cfl"");
+        sb.append(""  on cfl.ACCOUNT_CODE=cczq.ACCOUNT where KMTZFL in ('F','C')),"");
+        //按证券代码、市场、投资分类汇总
+        sb.append(""zqflhz as (select SECCODE,MARKET,TZFL,sum(GZSZZE) as AMOUNT from cczqfl group by SECCODE,MARKET,TZFL), "");
+        /**
+         * 取该产品专用债券，若不存在专用债券则去取公用债券
+         */
+        sb.append(BOND_INFO_SQL);
+        sb.append("" select SECCODE,MARKET,AMOUNT,zqstrd,zqendd,zqlvlx,zqfxcs,zqqltk,zqhsrq,zqsilb,ZQSHXQ,ZQSYFW,ZQYXZQ ""
+                + ""from zqflhz left join ZQ on zqdate = ? and zqcode = SECCODE and zqmket = MARKET and zqstat='A' "" +
+                "" where tzfl ='F' or ( tzfl ='C' and (zqsilb in ('CJZ','ZBZ') or zqyxzq='Y') and ZQFXRN in ('国家开发银行',""
+                + ""'中国进出口银行','中国农业发展银行'))"");
+
+        Object[] args = {prdCode, chDate, subjectType, prdCode, qxDate, prdCode, qxDate, prdCode,
+                qxDate, prdCode, chDate, chDate, getFuzzyPrdCode(prdCode), chDate, chDate};
+        return executeSql4Held2MaturityPreMon(sb, args);
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4BondDao1.java,getcczq4CydqI9ForSqDetail,214,"    public List<BondInfo> getcczq4CydqI9ForSqDetail(String prdCode, Date chDate, Date qxDate, String subjectType,
+                                         boolean isFullPrice) throws MonitorBussException, MonitorSystException {
+        StringBuilder sb = new StringBuilder();
+        // 取上日持仓的债券
+        // 持有到期1111（非资产支持证券）
+        sb.append(""with "");
+        sb.append(""cczq as ( "");
+        sb.append(""  select GZZHDM as ACCOUNT, GZZQDM as SECCODE, KMMKET as MARKET, GZSZZE, KMTZFL,'T-1' AS SQDATAFROM "");
+        sb.append(""  from TGCORE.EVLGZ, TGCORE.MONKM where GZCPDM=? and GZDATE=?  and  GZKMDM=KMCODE "");
+        sb.append(""  and KMCPLX=? and KMZQLX = 'ZQ' and "");
+        if (isFullPrice){
+            sb.append("" KMTYPE in ('CB','LX','YJLX') "");
+        } else {
+            sb.append("" KMTYPE in ('CB') "");
+        }
+        sb.append("" and KMZQLS<>'FZ' and ISFINAL='Y' "");
+        sb.append("" union all"");
+        //当天所有的银行间交易指令，卖债金额为负
+        sb.append("" select ACCCODE as ACCOUNT, zlzqdm  as SECCODE ,'Y' as MARKET, "");
+        if (isFullPrice){
+            sb.append(""(case zljylx when 'S' then -ZLQJJE else ZLQJJE end) as GZSZZE,"");
+        } else {
+            sb.append(""(case zljylx when 'S' then -zljjje else zljjje end) as GZSZZE,"");
+        }
+        sb.append("" zltzfl as KMTZFL,'T' AS SQDATAFROM from tgcore.MON_ZL_YHJZQZL "");
+        sb.append("" where zlcpdm = ? and zldate = ?  "");
+        sb.append("" union all "");
+        //网下申购的 ,用的是期望日期为今天的
+        sb.append("" select ACCCODE as ACCOUNT, zlzqdm as SECCODE,zlmket as MARKET,zljyje as GZSZZE,zltzfl as KMTZFL,'T' AS SQDATAFROM "" +
+                ""from tgcore.MON_ZL_WXXZZL where zlcpdm = ? and zldate = ? "");
+        sb.append("" union all "");
+        //T+0的，用的是期望日期为今天的
+        sb.append("" select ACCCODE as ACCOUNT, zlzqdm as SECCODE,zlmket as MARKET,zljyje as GZSZZE,zltzfl as KMTZFL,'T' AS SQDATAFROM "" +
+                ""from tgcore.MON_ZL_HSTLZL where zlcpdm = ? and zlqwrq = ? "");
+        sb.append("" ),"");
+        //关联账户重分类表，取出调整后的投资分类,并提出除资产支持证券外的持有到期债券
+        sb.append(""cczqfl as (select SECCODE,MARKET,GZSZZE, NVL(INVEST_CLASSIFY, KMTZFL) as TZFL,SQDATAFROM from cczq "");
+        sb.append(""  left join (select ACCOUNT_CODE, INVEST_CLASSIFY from TGCORE.MON_INVEST_RECLASSIFY where PRD_CODE=?"" +
+                "" and ? between START_DATE and END_DATE "" +
+                "" and STATUS='A') cfl"");
+        sb.append(""  on cfl.ACCOUNT_CODE=cczq.ACCOUNT where KMTZFL in ('F','C')),"");
+        //按证券代码、市场、投资分类汇总
+        sb.append(""zqflhz as (select SECCODE,MARKET,TZFL,SQDATAFROM,GZSZZE as AMOUNT from cczqfl), "");
+        /**
+         * 取该产品专用债券，若不存在专用债券则去取公用债券
+         */
+        sb.append(BOND_INFO_SQL);
+        sb.append("" select SECCODE,MARKET,AMOUNT,zqstrd,zqendd,zqlvlx,zqfxcs,zqqltk,zqhsrq,zqsilb,ZQSHXQ,ZQSYFW,ZQYXZQ ""
+                + "",ZQNAME,TZFL,SQDATAFROM ""
+                + ""from zqflhz left join ZQ on zqdate = ? and zqcode = SECCODE and zqmket = MARKET and zqstat='A' "" +
+                "" where tzfl ='F' or ( tzfl ='C' and (zqsilb in ('CJZ','ZBZ') or zqyxzq='Y') and ZQFXRN in ('国家开发银行',""
+                + ""'中国进出口银行','中国农业发展银行'))"");
+
+        Object[] args = {prdCode, chDate, subjectType, prdCode, qxDate, prdCode, qxDate, prdCode,
+                qxDate, prdCode, chDate, chDate, getFuzzyPrdCode(prdCode), chDate, chDate};
+        return executeSql4Held2MaturityPreMonForDetail(sb, args);
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4DepositDao.java,getCurrentDepositAndPosition,64,"    public List<Map<String, Object>> getCurrentDepositAndPosition(final String prdCode,
+                                                   final Date evlDate,
+                                                   final String subjectType) throws SQLException {
+        String sql = ""select GZSZZE as AMOUNT, (case KMZQLX when 'BFJ' then '备付金' else '活期存款' end) as SECTYPE, GZZHDM as SECCODE, 0 as SYQX ""
+                + ""from tgcore.EVLGZ, tgcore.MONKM where GZCPDM=? and GZDATE=?  and  GZZHDM=KMCODE and KMCPLX=? and ""
+                + ""((KMZQLX='CK' and KMZQLS='HQ' and ISFINAL='Y') or (KMZQLX='BFJ' and KMLEVL='1'))"";
+        Object[] args = {prdCode, evlDate, subjectType};
+        JdbcTemplate jdbcTemplate = new JdbcTemplate();
+        return jdbcTemplate.queryForList(sql, args);
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4FundDao.java,IncreaseOrReduce,39,"    public List<Map<String, Object>> IncreaseOrReduce(String cpdm, Date date, boolean isHb, boolean isI9, String kmcplx) throws Exception {
+        StringBuilder sbSql = new StringBuilder(1028);
+        Date jyrdq = calendarDao.addJysDate(date, 10).getDate();
+        Date yhjdq = calendarDao.addYhjDate(date, 10).getDate();
+        Date lastWorkDate = CalendarUtil.lastWorkDay(date.toString());
+        //T_1为上一日数据，T为业务日期数据
+        //违约债券  p4上一个交易日 估值表数据 ，gz4业务日期估值表数据
+        sbSql.append("" with "");
+        sbSql.append(JJTZSXZC.getGpSql(""_T_1""));
+        sbSql.append(JJTZSXZC.getGpSql(""_T0""));
+        sbSql.append("" gp_T_1 as ("");
+        sbSql.append("" select ZHDM,ZQDM,SL from fgkgp_T_1 "");
+        sbSql.append("" union all select ZHDM,ZQDM,SL from tpgp_T_1 "");
+        sbSql.append("" ), "");
+        sbSql.append("" gp_T0 as ("");
+        sbSql.append("" select ZHDM,ZQDM,SL from fgkgp_T0 "");
+        sbSql.append("" union all select ZHDM,ZQDM,SL from tpgp_T0 "");
+        sbSql.append("" ), "");
+        sbSql.append("" gpsg_T0 as ("");
+        sbSql.append("" select ZQDM,MKET,sum(SL) as SL from ( "");
+        sbSql.append("" select SXZQDM as ZQDM,SXJESL as SL,SXMKET as MKET from ltsxgp_T0) group by MKET,ZQDM "");
+        sbSql.append("" ), "");
+        sbSql.append("" gpsg_T_1 as ( "");
+        sbSql.append(
+                "" select SXZQDM as ZQDM,SXMKET as MKET,sum(SXJESL) as SL from tgcore.MONLTSX where SXCPDM=? and SXZQLB='GP' and SXSTRD<=? and SXENDD>=? and SXSTAT= 'A' "");
+        sbSql.append("" and exists (select 1 from gpsg_T0 where ZQDM=SXZQDM and MKET=SXMKET) group by SXZQDM,SXMKET "");
+        sbSql.append("" ), "");
+
+        sbSql.append("" pz4 as (select GZGZSL,GZZHDM,GZZQDM,GZDATE,KMMKET AS GZMKET "");
+        sbSql.append("" from tgcore.evlgz,tgcore.monkm where GZDATE=? and GZCPDM=? and "");
+        //sbSql.append("" GZZHDM like '1103__01_%'), "");
+        sbSql.append("" (KMCODE = GZKMDM AND KMCPLX = ? AND ISFINAL = 'Y' AND KMTYPE = 'CB' AND KMZQLX = 'ZQ' AND KMZQLS not in ('FZ','WY')) ), "");
+        sbSql.append("" pzwy4 as (select GZGZSL,GZZHDM,GZZQDM,GZDATE,KMMKET AS GZMKET "");
+        sbSql.append("" from tgcore.evlgz,tgcore.monkm where gzcpdm=? and gzdate=? and "");
+        sbSql.append("" KMCODE = GZKMDM AND KMCPLX = ? AND ISFINAL = 'Y' AND KMTYPE = 'CB' AND KMZQLX = 'ZQ' AND KMZQLS = 'WY' ), "");
+
+        sbSql.append("" gz4 as (select GZGZSL,GZZHDM,GZZQDM,GZDATE,KMMKET AS GZMKET "");
+        sbSql.append("" from tgcore.evlgz,tgcore.monkm where GZDATE=? and GZCPDM=? and "");
+        //sbSql.append("" GZZHDM like '1103__01_%') "");
+        sbSql.append("" (KMCODE = GZKMDM AND KMCPLX = ? AND ISFINAL = 'Y' AND KMTYPE = 'CB' AND KMZQLX = 'ZQ' AND KMZQLS not in ('FZ','WY')) ), "");
+        sbSql.append("" gzwy4 as (select GZGZSL,GZZHDM,GZZQDM,GZDATE,KMMKET AS GZMKET "");
+        sbSql.append("" from tgcore.evlgz,tgcore.monkm where gzcpdm=? and gzdate=? and "");
+        sbSql.append("" KMCODE = GZKMDM AND KMCPLX = ? AND ISFINAL = 'Y' AND KMTYPE = 'CB' AND KMZQLX = 'ZQ' AND KMZQLS = 'WY' ) "");
+
+        sbSql.append("" select NVL(pz5.GZGZSL,0) T_1,'WYZQ' LB,NVL(pz5.GZZQDM,gz5.GZZQDM) GZZQDM,NVL(gz5.GZGZSL,0) T  FROM "");
+        sbSql.append("" (select GZZHDM,GZGZSL,GZZQDM from pz4 join tgcore.monwy on GZDATE=WYDATE and GZMKET=WYMKET and GZZQDM=WYZQDM "" +
+                "" union all select GZZHDM,GZGZSL,GZZQDM from pzwy4 )pz5 "");
+        sbSql.append("" full join (select GZZHDM,GZGZSL,GZZQDM from gz4 join tgcore.monwy on GZDATE=WYDATE and GZMKET=WYMKET and GZZQDM=WYZQDM "" +
+                "" union all select GZZHDM,GZGZSL,GZZQDM from gzwy4 )gz5 "");
+        sbSql.append("" on pz5.GZZHDM=gz5.GZZHDM "");
+
+        //手工维护股票（按照股票代码与市场比较手维）
+        sbSql.append("" union all "");
+        sbSql.append("" select NVL(pz1.SL,0) T_1,'GP' LB,NVL(pz1.ZQDM,gz1.ZQDM)||'(手维)' GZZQDM,NVL(gz1.SL,0) T  from "");
+        sbSql.append("" (select * from gpsg_T_1) pz1 full join (select * from gpsg_T0) gz1 on pz1.ZQDM=gz1.ZQDM and pz1.MKET=gz1.MKET "");
+        //停牌股票与非公开发行股票（按照账户来比较）+转融通受限科目
+        sbSql.append("" union all "");
+        sbSql.append("" select NVL(pz1.SL,0) T_1,'GP' LB,NVL(pz1.ZQDM,gz1.ZQDM) GZZQDM,NVL(gz1.SL,0) T  from "");
+        sbSql.append("" (select * from gp_T_1) pz1 full join (select * from gp_T0) gz1 on pz1.ZHDM=gz1.ZHDM "");
+
+        List<Map<String, Object>> mapList = new ArrayList<>();
+        Object[] paras = new Object[]{
+                lastWorkDate, cpdm, lastWorkDate, kmcplx, cpdm, lastWorkDate, lastWorkDate, //上一日股票
+                date, cpdm, date, kmcplx, cpdm, date, date,  //今日股票
+                cpdm, lastWorkDate, lastWorkDate,
+                lastWorkDate, cpdm, kmcplx, cpdm, lastWorkDate, kmcplx, date, cpdm, kmcplx, cpdm, date, kmcplx    //违规债券
+        };
+        mapList.addAll(queryForList(sbSql.toString(), paras));
+
+        //交易所逆回购，回购到期，买
+        sbSql.setLength(0);
+        sbSql.append(
+                "" select CAST(0 AS decimal) T_1,'JYSQS' LB,QSGQDM GZZQDM,CAST(count(1) AS decimal) T from tgcore.jysqs where QSCRTD=? and QSDATE>? and QSDATE>? and QSCPDM=? AND QSMMBZ='B' and QSYWBZ='FBDQ' and QSSTAT='A' group by QSGQDM,QSMKET "");
+        paras = new Object[]{date, date, jyrdq, cpdm};
+        mapList.addAll(queryForList(sbSql.toString(), paras));
+
+        //银行间逆回购
+        sbSql.setLength(0);
+        sbSql.append(
+                "" select CAST(0 AS decimal) T_1,'YHJHG' LB,HGCODE GZZQDM,CAST(count(1) AS decimal) T from tgcore.yhjhg where HGDATE=? and HGENDD>? and HGENDD>? and HGCPDM=? and HGHGFX='B' and HGSTAT='A' group by HGCODE "");
+        paras = new Object[]{date, date, yhjdq, cpdm};
+        mapList.addAll(queryForList(sbSql.toString(), paras));
+
+        //交易所质押式逆回购,到期未清算，卖
+        sbSql.setLength(0);
+        sbSql.append(
+                "" select CAST(0 AS decimal) T_1,'JYSQTQS' LB,QSGQDM GZZQDM,CAST(count(1) AS decimal) T from tgcore.JYSQTQS where QSCPDM=? and qscrtd=? and QSDATE>? and qsdate>? and QSMMBZ='S' and QSYWBZ='ZQLQ' and QSSTAT='A' group by QSGQDM,QSMKET "");
+        paras = new Object[]{cpdm, date, jyrdq, date};
+        mapList.addAll(queryForList(sbSql.toString(), paras));
+
+        //定期存款
+        sbSql.setLength(0);
+        sbSql.append(
+                "" select CAST(0 AS decimal) T_1,'EVLDQ' LB,DQCJBH GZZQDM,CAST(count(1) AS decimal) T from tgcore.evldq where DQCPDM=? and DQSTRD=? and DQENDD>? and DQENDD>? and DQSTAT='A' and DQTQTJ='Y' group by DQCJBH "");
+        paras = new Object[]{cpdm, date, date, yhjdq};
+        mapList.addAll(queryForList(sbSql.toString(), paras));
+
+        //转融通
+        sbSql.setLength(0);
+        sbSql.append("" select CAST(0 AS decimal) T_1, 'ZRTDZ' as LB, DZHYBH GZZQDM, CAST(count(1) AS decimal) T from tgcore.zrtdz A where "");
+        //取期限超过10个交易所工作日
+        sbSql.append(
+                "" DZCPDM=? and DZCJRQ=? and STATUS='A' and 11 <= (select count(1) FROM TGCORE.PUBRL where RLDATE between A.DZCJRQ and A.DZHYDQ and RLWORK='Y') group by DZHYBH"");
+        paras = new Object[]{cpdm, date};
+        mapList.addAll(queryForList(sbSql.toString(), paras));
+
+        if (!isHb) {
+            //资产支持证券
+            sbSql.setLength(0);
+            sbSql.append("" select NVL(pz2.GZGZSL,0) T_1,'ZC' LB,NVL(pz2.GZZQDM,gz2.GZZQDM) GZZQDM,NVL(gz2.GZGZSL,0) T from "");
+            sbSql.append("" (SELECT GZZHDM,GZZQDM,GZGZSL FROM TGCORE.EVLGZ,TGCORE.MONKM WHERE GZDATE=? AND GZCPDM=? and "");
+            //GZZHDM like '1104__01_%') pz2
+            sbSql.append("" (KMCODE = GZKMDM AND  KMCPLX = ? AND ISFINAL = 'Y' AND KMTYPE = 'CB' AND KMZQLX = 'ZCZQ' AND KMZQLS <> 'FZ' ) ) pz2 "");
+            sbSql.append("" full join (SELECT GZZHDM,GZZQDM,GZGZSL FROM TGCORE.EVLGZ,TGCORE.MONKM WHERE GZDATE=? AND GZCPDM=? AND "");
+            //sbSql.append("" GZZHDM like '1104__01_%') gz2 "");
+            sbSql.append("" (KMCODE = GZKMDM AND  KMCPLX = ? AND ISFINAL = 'Y' AND KMTYPE = 'CB' AND KMZQLX = 'ZCZQ' AND KMZQLS <> 'FZ' )) gz2 "");
+            sbSql.append("" on pz2.GZZHDM=gz2.GZZHDM "");
+            paras = new Object[]{lastWorkDate, cpdm, kmcplx, date, cpdm, kmcplx};
+            mapList.addAll(queryForList(sbSql.toString(), paras));
+
+        } else {
+            sbSql.setLength(0);
+            sbSql.append("" select NVL(pz2.GZGZSL,0) T_1,'ZC' LB,NVL(pz2.GZZQDM,gz2.GZZQDM) GZZQDM,NVL(gz2.GZGZSL,0) T from "");
+            sbSql.append("" (SELECT GZZHDM,GZZQDM,GZGZSL FROM TGCORE.EVLGZ,TGCORE.MONKM WHERE GZDATE=? AND GZCPDM=? and "");
+            //sbSql.append("" GZZHDM like '1104__01_%' ) pz2 "");
+            sbSql.append("" (KMCODE = GZKMDM AND  KMCPLX = ? AND ISFINAL = 'Y' AND KMTYPE = 'CB' AND KMZQLX = 'ZCZQ' AND KMZQLS <> 'FZ' ) ) pz2 "");
+            sbSql.append("" full join (SELECT GZZHDM,GZZQDM,GZGZSL FROM TGCORE.EVLGZ,TGCORE.MONKM WHERE GZDATE=? AND GZCPDM=? AND "");
+            //sbSql.append("" GZZHDM like '1104__01_%') gz2 "");
+            sbSql.append("" (KMCODE = GZKMDM AND  KMCPLX = ? AND ISFINAL = 'Y' AND KMTYPE = 'CB' AND KMZQLX = 'ZCZQ' AND KMZQLS <> 'FZ' )) gz2  "");
+            sbSql.append("" on pz2.GZZHDM=gz2.GZZHDM "");
+            paras = new Object[]{lastWorkDate, cpdm, kmcplx, date, cpdm, kmcplx};
+            mapList.addAll(queryForList(sbSql.toString(), paras));
+        }
+        return mapList;
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4FundDao.java,getHoldFundCode,680,"    public List<String> getHoldFundCode(Date monDate, String prdCode, String subjectType) throws MonitorBussException, MonitorSystException {
+        String sql = """";
+        sql = ""select distinct GZZQDM from TGCORE.EVLGZ,TGCORE.MONKM where GZCPDM= ? and GZDATE= ?  "" +
+                ""and GZKMDM=KMCODE  and KMCPLX= ?  and ISFINAL='Y' and KMZQLX in('JJ') AND KMTYPE ='CB' and KMZQLS <> 'FZ'"";
+        JdbcTemplate jdbcTemplate = new JdbcTemplate();
+        try {
+            return jdbcTemplate.queryForList(sql, new Object[]{prdCode, monDate, subjectType}, new RowMapper<String>() {
+                @Override
+                public String mapRow(ResultSet rs, int count) throws Exception {
+                    return rs.getString(""GZZQDM"");
+                }
+            });
+        } catch (Exception e) {
+            throw new MonitorSystException(""获取持仓基金代码失败"", e);
+        }
+
+    }"
+src\main\java\cmb\custody\monitor\domain\index\complexity\dao\Data4FundDao.java,getFundHoldingInfo,708,"    public List<Map<String, Object>> getFundHoldingInfo(final Date evlDate, final Date chDate,
+                                                        final String prdCode, final String subjectType)
+            throws SQLException {
+        StringBuilder sql = new StringBuilder(256);
+        sql.append(""with "");
+        sql.append(""holdjj as (select GZZQDM as SECCODE, KMMKET as MARKET, sum(GZSZZE) as AMOUNT "");
+        sql.append(""   from TGCORE.EVLGZ,TGCORE.MONKM where GZCPDM=? and GZDATE=? and GZKMDM=KMCODE "");
+        sql.append(""   and KMCPLX=? and KMZQLX='JJ' and KMTYPE='CB' and ISFINAL='Y' group by GZZQDM, KMMKET), "");
+
+        sql.append(""fund as (select JJCODE,JJMKET,JJNAME,JJDATE,JJSILB from TGCORE.MONJJ where JJDATE=?) "");
+
+        sql.append(""select SECCODE,MARKET,JJNAME as SECNAME,AMOUNT,JJSILB as SILB, 1 as SYQX, '货币基金' as SECTYPE ""
+                        + ""from holdjj left join fund on JJCODE=SECCODE and JJMKET=MARKET "")
+                .append(""where JJSILB in ('HB') or JJSILB is NULL"");
+        Object[] args = {prdCode, evlDate, subjectType, chDate};
+        JdbcTemplate jdbcTemplate = new JdbcTemplate();
+        return jdbcTemplate.queryForList(sql.toString(), args);
+    }"
