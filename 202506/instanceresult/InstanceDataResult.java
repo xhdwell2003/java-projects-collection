@@ -65,6 +65,30 @@ public class InstanceDataResult {
             //如果没有汇总项，则为汇总项，则直接做笛卡尔积计算
             List<RowData> resultDataList = performMatrixCalculation(numeratorResult, denominatorResult);
 
+            //构造输出列列表，包含分子分母的所有列以及比率输出列
+            List<DataCol> outputColList = new ArrayList<>();
+            
+            //添加分子的列
+            outputColList.addAll(numeratorResult.getColList());
+            
+            //添加分母的列（避免重复）
+            for (DataCol denominatorCol : denominatorResult.getColList()) {
+                boolean exists = outputColList.stream()
+                    .anyMatch(col -> col.getName().equals(denominatorCol.getName()));
+                if (!exists) {
+                    outputColList.add(denominatorCol);
+                }
+            }
+            
+            //添加比率输出列
+            outputColList.add(new DataCol(output, "DECIMAL", output));
+            
+            //构造最终的分组键（优先使用分子的分组键）
+            Map<String, String> finalGroupKey = numeratorResult.getGroupKey() != null ?
+                numeratorResult.getGroupKey() : denominatorResult.getGroupKey();
+            
+            return new IndexInstanceResult(outputColList, resultDataList, indexInstance.getInstanceId(),
+                    indexInstance.getIndexId(), finalGroupKey);
         }
     }
 
@@ -262,7 +286,9 @@ public class InstanceDataResult {
                 
                 // 计算比率
                 String ratioValue = calculateRatioValue(numeratorRow, denominatorRow);
-                combinedCells.add(new DataCell(resultIdStr, "ratio", ratioValue));
+                String output = indexDataItems.stream().filter(data -> "F".equals(data.getDataSourceType())).map(MetricDataItem::getDataItemField)
+                        .findFirst().orElse("ratio");
+                combinedCells.add(new DataCell(resultIdStr, output, ratioValue));
                 
                 resultList.add(new RowData(combinedCells, resultId));
             }
@@ -388,7 +414,9 @@ public class InstanceDataResult {
         
         // 计算比率
         String ratioValue = calculateRatioValue(numeratorRow, denominatorRow);
-        combinedCells.add(new DataCell(resultIdStr, "ratio", ratioValue));
+        String output = indexDataItems.stream().filter(data -> "F".equals(data.getDataSourceType())).map(MetricDataItem::getDataItemField)
+                .findFirst().orElse("ratio");
+        combinedCells.add(new DataCell(resultIdStr, output, ratioValue));
         
         return new RowData(combinedCells, resultId);
     }
