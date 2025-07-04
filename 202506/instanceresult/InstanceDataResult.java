@@ -1,6 +1,8 @@
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @SuperBuilder
 @NoArgsConstructor
@@ -159,21 +161,21 @@ public class InstanceDataResult {
             
             return new DataCell(String.valueOf(resultId), colName, firstValue);
         } else if ("DECIMAL".equals(colType) || "INTEGER".equals(colType)) {
-            // 数值类型，求和
-            double sum = groupRows.stream()
+            // 数值类型，使用BigDecimal求和确保精度
+            BigDecimal sum = groupRows.stream()
                 .flatMap(row -> row.getCellList().stream())
                 .filter(cell -> colName.equals(cell.getColName()))
                 .filter(cell -> cell.getValue() != null && !cell.getValue().trim().isEmpty())
-                .mapToDouble(cell -> {
+                .map(cell -> {
                     try {
-                        return Double.parseDouble(cell.getValue());
+                        return new BigDecimal(cell.getValue());
                     } catch (NumberFormatException e) {
-                        return 0.0;
+                        return BigDecimal.ZERO;
                     }
                 })
-                .sum();
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
             
-            return new DataCell(String.valueOf(resultId), colName, String.valueOf(sum));
+            return new DataCell(String.valueOf(resultId), colName, sum.stripTrailingZeros().toPlainString());
         } else {
             // 非数值类型，取第一条记录
             String firstValue = groupRows.stream()
@@ -217,21 +219,21 @@ public class InstanceDataResult {
         String colType = col.getType();
         
         if ("DECIMAL".equals(colType) || "INTEGER".equals(colType)) {
-            // 数值类型，求和
-            double sum = allRows.stream()
+            // 数值类型，使用BigDecimal求和确保精度
+            BigDecimal sum = allRows.stream()
                 .flatMap(row -> row.getCellList().stream())
                 .filter(cell -> colName.equals(cell.getColName()))
                 .filter(cell -> cell.getValue() != null && !cell.getValue().trim().isEmpty())
-                .mapToDouble(cell -> {
+                .map(cell -> {
                     try {
-                        return Double.parseDouble(cell.getValue());
+                        return new BigDecimal(cell.getValue());
                     } catch (NumberFormatException e) {
-                        return 0.0;
+                        return BigDecimal.ZERO;
                     }
                 })
-                .sum();
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
             
-            return new DataCell("0", colName, String.valueOf(sum));
+            return new DataCell("0", colName, sum.stripTrailingZeros().toPlainString());
         } else {
             // 非数值类型，取第一条记录
             String firstValue = allRows.stream()
@@ -423,6 +425,7 @@ public class InstanceDataResult {
     
     /**
      * 计算比率值（分子/分母）
+     * 使用BigDecimal进行精确计算，避免浮点数精度问题
      */
     private String calculateRatioValue(RowData numeratorRow, RowData denominatorRow) {
         try {
@@ -434,23 +437,28 @@ public class InstanceDataResult {
                 return "";
             }
             
-            double num = Double.parseDouble(numeratorValue);
-            double den = Double.parseDouble(denominatorValue);
+            BigDecimal numerator = new BigDecimal(numeratorValue);
+            BigDecimal denominator = new BigDecimal(denominatorValue);
             
-            if (den == 0) {
+            // 检查分母是否为零
+            if (denominator.compareTo(BigDecimal.ZERO) == 0) {
                 return ""; // 避免除零错误
             }
             
-            double ratio = num / den;
-            return String.valueOf(ratio);
+            // 使用BigDecimal进行除法运算，保留10位小数，使用四舍五入模式
+            BigDecimal ratio = numerator.divide(denominator, 10, RoundingMode.HALF_UP);
             
-        } catch (NumberFormatException e) {
-            return ""; // 如果转换失败，返回空值
+            // 去除尾部不必要的零
+            return ratio.stripTrailingZeros().toPlainString();
+            
+        } catch (NumberFormatException | ArithmeticException e) {
+            return ""; // 如果转换失败或计算错误，返回空值
         }
     }
     
     /**
      * 获取行数据中第一个数值类型的值
+     * 使用BigDecimal验证数值有效性
      */
     private String getFirstNumericValue(RowData rowData) {
         if (rowData == null || rowData.getCellList() == null) {
@@ -462,7 +470,7 @@ public class InstanceDataResult {
             .filter(value -> value != null && !value.trim().isEmpty())
             .filter(value -> {
                 try {
-                    Double.parseDouble(value);
+                    new BigDecimal(value);
                     return true;
                 } catch (NumberFormatException e) {
                     return false;
