@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.your.package.MonMetricDefineBackupMapper">
+
+    <update id="backupOrUpdateFromSource">
+        MERGE INTO TGCORE.MON_METRIC_DEFINE_BACKUP target
+        USING (
+            SELECT * FROM TGCORE.MON_METRIC_DEFINE
+            <where>
+                <if test="metricId != null and metricId != ''">
+                    METRIC_ID = #{metricId}
+                </if>
+            </where>
+        ) source
+        ON (
+            target.SYSTEM_ID = source.SYSTEM_ID AND
+            target.METRIC_ID = source.METRIC_ID
+        )
+        WHEN MATCHED THEN
+            UPDATE SET
+                target.METRIC_NAME = source.METRIC_NAME,
+                target.METRIC_TYPE = source.METRIC_TYPE,
+                target.DATA_ACCESS_TYPE = source.DATA_ACCESS_TYPE,
+                target.CREATE_USER = source.CREATE_USER,
+                target.UPDATE_USER = source.UPDATE_USER,
+                target.OPT_USER = source.OPT_USER,
+                target.CHK_USER = source.CHK_USER,
+                target.STATE = source.STATE,
+                target.CREATE_TIME = source.CREATE_TIME,
+                target.UPDATE_TIME = source.UPDATE_TIME,
+                target.METRIC_DATA_BUILDER = source.METRIC_DATA_BUILDER,
+                target.METRIC_DATA_SOURCE = source.METRIC_DATA_SOURCE,
+                target.METRIC_TREE_ID = source.METRIC_TREE_ID,
+                target.CLASSIFY_ID = source.CLASSIFY_ID,
+                target.DISPLAY = source.DISPLAY,
+                target.METRIC_DATA_SCOPE = source.METRIC_DATA_SCOPE,
+                target.MON_OBJECT_TYPE = source.MON_OBJECT_TYPE,
+                target.BELONG_TO = source.BELONG_TO,
+                target.IS_ORIGINAL_BASIC = source.IS_ORIGINAL_BASIC,
+                target.API_CLASS = source.API_CLASS,
+                target.SUBJECT_KEY = source.SUBJECT_KEY,
+                target.VERFY_TYPE = source.VERFY_TYPE,
+                target.ASSET_TYPE = source.ASSET_TYPE,
+                target.EXPLANATION = source.EXPLANATION,
+                target.IS_MANAGER_METRIC = source.IS_MANAGER_METRIC
+        WHEN NOT MATCHED THEN
+            INSERT (
+                METRIC_ID, SYSTEM_ID, METRIC_NAME, METRIC_TYPE, DATA_ACCESS_TYPE, CREATE_USER, UPDATE_USER,
+                OPT_USER, CHK_USER, STATE, CREATE_TIME, UPDATE_TIME, METRIC_DATA_BUILDER, METRIC_DATA_SOURCE,
+                METRIC_TREE_ID, CLASSIFY_ID, DISPLAY, METRIC_DATA_SCOPE, MON_OBJECT_TYPE, BELONG_TO,
+                IS_ORIGINAL_BASIC, API_CLASS, SUBJECT_KEY, VERFY_TYPE, ASSET_TYPE, EXPLANATION, IS_MANAGER_METRIC
+            ) VALUES (
+                source.METRIC_ID, source.SYSTEM_ID, source.METRIC_NAME, source.METRIC_TYPE, source.DATA_ACCESS_TYPE, source.CREATE_USER, source.UPDATE_USER,
+                source.OPT_USER, source.CHK_USER, source.STATE, source.CREATE_TIME, source.UPDATE_TIME, source.METRIC_DATA_BUILDER, source.METRIC_DATA_SOURCE,
+                source.METRIC_TREE_ID, source.CLASSIFY_ID, source.DISPLAY, source.METRIC_DATA_SCOPE, source.MON_OBJECT_TYPE, source.BELONG_TO,
+                source.IS_ORIGINAL_BASIC, source.API_CLASS, source.SUBJECT_KEY, source.VERFY_TYPE, source.ASSET_TYPE, source.EXPLANATION, source.IS_MANAGER_METRIC
+            )
+    </update>
+
+</mapper>

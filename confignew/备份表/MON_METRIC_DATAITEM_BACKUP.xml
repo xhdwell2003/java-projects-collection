@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.your.package.MonMetricDataitemBackupMapper">
+
+    <update id="backupOrUpdateFromSource">
+        MERGE INTO TGCORE.MON_METRIC_DATAITEM_BACKUP target
+        USING (
+            SELECT * FROM TGCORE.MON_METRIC_DATAITEM
+            <where>
+                <if test="originId != null and originId != ''">
+                    ORIGIN_ID = #{originId}
+                </if>
+            </where>
+        ) source
+        ON (target.DATA_ITEM_ID = source.DATA_ITEM_ID)
+        WHEN MATCHED THEN
+            UPDATE SET
+                target.ORIGIN_ID = source.ORIGIN_ID,
+                target.SYSTEM_ID = source.SYSTEM_ID,
+                target.ORIGIN_TYPE = source.ORIGIN_TYPE,
+                target.DATA_ITEM_FIELD = source.DATA_ITEM_FIELD,
+                target.DATA_ITEM_NAME = source.DATA_ITEM_NAME,
+                target.MON_OBJECT_MARK = source.MON_OBJECT_MARK,
+                target.SUB_DIMENSION_MARK = source.SUB_DIMENSION_MARK,
+                target.DATA_SOURCE_TYPE = source.DATA_SOURCE_TYPE,
+                target.DATA_SOURCE = source.DATA_SOURCE,
+                target.OUT_COLUM_MARK = source.OUT_COLUM_MARK,
+                target.DATA_TYPE = source.DATA_TYPE,
+                target.STATE = source.STATE,
+                target.CREATE_USER = source.CREATE_USER,
+                target.UPDATE_USER = source.UPDATE_USER,
+                target.OPT_USER = source.OPT_USER,
+                target.CHK_USER = source.CHK_USER,
+                target.CREATE_TIME = source.CREATE_TIME,
+                target.UPDATE_TIME = source.UPDATE_TIME,
+                target.DATA_SOURCE_DESCRIPTION = source.DATA_SOURCE_DESCRIPTION
+        WHEN NOT MATCHED THEN
+            INSERT (
+                DATA_ITEM_ID, ORIGIN_ID, SYSTEM_ID, ORIGIN_TYPE, DATA_ITEM_FIELD, DATA_ITEM_NAME,
+                MON_OBJECT_MARK, SUB_DIMENSION_MARK, DATA_SOURCE_TYPE, DATA_SOURCE, OUT_COLUM_MARK,
+                DATA_TYPE, STATE, CREATE_USER, UPDATE_USER, OPT_USER, CHK_USER, CREATE_TIME,
+                UPDATE_TIME, DATA_SOURCE_DESCRIPTION
+            ) VALUES (
+                source.DATA_ITEM_ID, source.ORIGIN_ID, source.SYSTEM_ID, source.ORIGIN_TYPE, source.DATA_ITEM_FIELD, source.DATA_ITEM_NAME,
+                source.MON_OBJECT_MARK, source.SUB_DIMENSION_MARK, source.DATA_SOURCE_TYPE, source.DATA_SOURCE, source.OUT_COLUM_MARK,
+                source.DATA_TYPE, source.STATE, source.CREATE_USER, source.UPDATE_USER, source.OPT_USER, source.CHK_USER, source.CREATE_TIME,
+                source.UPDATE_TIME, source.DATA_SOURCE_DESCRIPTION
+            )
+    </update>
+
+</mapper>

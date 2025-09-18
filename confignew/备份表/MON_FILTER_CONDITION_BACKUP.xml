@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.your.package.MonFilterConditionBackupMapper">
+
+    <update id="backupOrUpdateFromSource">
+        MERGE INTO TGCORE.MON_FILTER_CONDITION_BACKUP target
+        USING (
+            SELECT * FROM TGCORE.MON_FILTER_CONDITION
+            <where>
+                <if test="originId != null and originId != ''">
+                    ORIGIN_ID = #{originId}
+                </if>
+            </where>
+        ) source
+        ON (target.FILTER_CONDITION_ID = source.FILTER_CONDITION_ID)
+        WHEN MATCHED THEN
+            UPDATE SET
+                target.SYSTEM_ID = source.SYSTEM_ID,
+                target.DATA_ITEM_ID = source.DATA_ITEM_ID,
+                target.ORIGIN_ID = source.ORIGIN_ID,
+                target.SUB_METRIC_ID = source.SUB_METRIC_ID,
+                target.RELATION_TYPE = source.RELATION_TYPE,
+                target.RELATION = source.RELATION,
+                target.FILTER_RENGE_TYPE = source.FILTER_RENGE_TYPE,
+                target.FILTER_RENGE = source.FILTER_RENGE,
+                target.STATE = source.STATE,
+                target.CREATE_USER = source.CREATE_USER,
+                target.UPDATE_USER = source.UPDATE_USER,
+                target.OPT_USER = source.OPT_USER,
+                target.CHK_USER = source.CHK_USER,
+                target.CREATE_TIME = source.CREATE_TIME,
+                target.UPDATE_TIME = source.UPDATE_TIME,
+                target.ORIGIN_TYPE = source.ORIGIN_TYPE,
+                target.UNIT = source.UNIT,
+                target.ADDPARAMNAME = source.ADDPARAMNAME,
+                target.ADDPARAMVALUE = source.ADDPARAMVALUE
+        WHEN NOT MATCHED THEN
+            INSERT (
+                FILTER_CONDITION_ID, SYSTEM_ID, DATA_ITEM_ID, ORIGIN_ID, SUB_METRIC_ID,
+                RELATION_TYPE, RELATION, FILTER_RENGE_TYPE, FILTER_RENGE, STATE,
+                CREATE_USER, UPDATE_USER, OPT_USER, CHK_USER, CREATE_TIME,
+                UPDATE_TIME, ORIGIN_TYPE, UNIT, ADDPARAMNAME, ADDPARAMVALUE
+            ) VALUES (
+                source.FILTER_CONDITION_ID, source.SYSTEM_ID, source.DATA_ITEM_ID, source.ORIGIN_ID, source.SUB_METRIC_ID,
+                source.RELATION_TYPE, source.RELATION, source.FILTER_RENGE_TYPE, source.FILTER_RENGE, source.STATE,
+                source.CREATE_USER, source.UPDATE_USER, source.OPT_USER, source.CHK_USER, source.CREATE_TIME,
+                source.UPDATE_TIME, source.ORIGIN_TYPE, source.UNIT, source.ADDPARAMNAME, source.ADDPARAMVALUE
+            )
+    </update>
+
+</mapper>

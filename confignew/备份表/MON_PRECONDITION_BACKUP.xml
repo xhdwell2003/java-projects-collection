@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.your.package.MonPreconditionBackupMapper">
+
+    <update id="backupOrUpdateFromSource">
+        MERGE INTO TGCORE.MON_PRECONDITION_BACKUP target
+        USING (
+            SELECT * FROM TGCORE.MON_PRECONDITION
+            <where>
+                <if test="indexId != null and indexId != ''">
+                    INDEX_ID = #{indexId}
+                </if>
+            </where>
+        ) source
+        ON (target.PRE_CON_ID = source.PRE_CON_ID)
+        WHEN MATCHED THEN
+            UPDATE SET
+                target.SYSTEM_ID = source.SYSTEM_ID,
+                target.INDEX_ID = source.INDEX_ID,
+                target.PRE_INDEX = source.PRE_INDEX,
+                target.CONDITION_TYPE = source.CONDITION_TYPE,
+                target.OUTPUT_COLUMN = source.OUTPUT_COLUMN,
+                target.UNIT = source.UNIT,
+                target."PARAMETER" = source."PARAMETER"
+        WHEN NOT MATCHED THEN
+            INSERT (
+                PRE_CON_ID, SYSTEM_ID, INDEX_ID, PRE_INDEX, CONDITION_TYPE,
+                OUTPUT_COLUMN, UNIT, "PARAMETER"
+            ) VALUES (
+                source.PRE_CON_ID, source.SYSTEM_ID, source.INDEX_ID, source.PRE_INDEX, source.CONDITION_TYPE,
+                source.OUTPUT_COLUMN, source.UNIT, source."PARAMETER"
+            )
+    </update>
+
+</mapper>

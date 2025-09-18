@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.your.package.MonIndexExprassionBackupMapper">
+
+    <update id="backupOrUpdateFromSource">
+        MERGE INTO TGCORE.MON_INDEX_EXPRASSION_BACKUP target
+        USING (
+            SELECT * FROM TGCORE.MON_INDEX_EXPRASSION
+            <where>
+                <if test="indexId != null and indexId != ''">
+                    INDEX_ID = #{indexId}
+                </if>
+            </where>
+        ) source
+        ON (
+            target.INDEX_ID = source.INDEX_ID AND
+            target.SYSTEM_ID = source.SYSTEM_ID AND
+            target.EXP_TYPE = source.EXP_TYPE AND
+            target.METRIC_GROUP_ID = source.METRIC_GROUP_ID
+        )
+        WHEN MATCHED THEN
+            UPDATE SET
+                target."EXP" = source."EXP",
+                target.EXP_DESCRIPTION = source.EXP_DESCRIPTION,
+                target.OPT_USER = source.OPT_USER,
+                target.CHK_USER = source.CHK_USER,
+                target.STATE = source.STATE,
+                target.CREATE_TIME = source.CREATE_TIME,
+                target.CREATE_USER = source.CREATE_USER,
+                target.UPDATE_TIME = source.UPDATE_TIME,
+                target.UPDATE_USER = source.UPDATE_USER,
+                target.TABLE_INFO = source.TABLE_INFO,
+                target.EXPR_ITEM_LIST = source.EXPR_ITEM_LIST,
+                target.GRANULARITY = source.GRANULARITY,
+                target.DIMENSION = source.DIMENSION,
+                target.DATAITEM = source.DATAITEM,
+                target.DATAITEMSOURCE = source.DATAITEMSOURCE
+        WHEN NOT MATCHED THEN
+            INSERT (
+                INDEX_ID, SYSTEM_ID, EXP_TYPE, METRIC_GROUP_ID, "EXP", EXP_DESCRIPTION, OPT_USER,
+                CHK_USER, STATE, CREATE_TIME, CREATE_USER, UPDATE_TIME, UPDATE_USER,
+                TABLE_INFO, EXPR_ITEM_LIST, GRANULARITY, DIMENSION, DATAITEM, DATAITEMSOURCE
+            ) VALUES (
+                source.INDEX_ID, source.SYSTEM_ID, source.EXP_TYPE, source.METRIC_GROUP_ID, source."EXP", source.EXP_DESCRIPTION, source.OPT_USER,
+                source.CHK_USER, source.STATE, source.CREATE_TIME, source.CREATE_USER, source.UPDATE_TIME, source.UPDATE_USER,
+                source.TABLE_INFO, source.EXPR_ITEM_LIST, source.GRANULARITY, source.DIMENSION, source.DATAITEM, source.DATAITEMSOURCE
+            )
+    </update>
+
+</mapper>

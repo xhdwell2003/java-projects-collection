@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.your.package.MonIndexInfoBackupMapper">
+
+    <update id="backupOrUpdateFromSource">
+        MERGE INTO TGCORE.MON_INDEX_INFO_BACKUP target
+        USING (
+            SELECT * FROM TGCORE.MON_INDEX_INFO
+            <where>
+                <if test="indexId != null and indexId != ''">
+                    INDEX_ID = #{indexId}
+                </if>
+            </where>
+        ) source
+        ON (
+            target.INDEX_ID = source.INDEX_ID AND
+            target.SYSTEM_ID = source.SYSTEM_ID
+        )
+        WHEN MATCHED THEN
+            UPDATE SET
+                target.NAME = source.NAME,
+                target.DESCRIPTION = source.DESCRIPTION,
+                target.MON_OBJECT = source.MON_OBJECT,
+                target.MAJOR_CLASS = source.MAJOR_CLASS,
+                target.SUBCLASS = source.SUBCLASS,
+                target.BEHAVIOR = source.BEHAVIOR,
+                target.PRD_TYPE = source.PRD_TYPE,
+                target.CONTROL_TYPE = source.CONTROL_TYPE,
+                target.POLICY_SOURCE = source.POLICY_SOURCE,
+                target.POLICY_CHAPTER = source.POLICY_CHAPTER,
+                target.MOMENT = source.MOMENT,
+                target.BIZ_SOURCE_DATE = source.BIZ_SOURCE_DATE,
+                target.LIMITED_ILLEGAL_DAYS = source.LIMITED_ILLEGAL_DAYS,
+                target.PENETRATE = source.PENETRATE,
+                target.PENETRATE_LEVEL = source.PENETRATE_LEVEL,
+                target.ILLEGAL_TYPE = source.ILLEGAL_TYPE,
+                target.TREE_ID = source.TREE_ID,
+                target.OPT_USER = source.OPT_USER,
+                target.CHK_USER = source.CHK_USER,
+                target.STATE = source.STATE,
+                target.CREATE_TIME = source.CREATE_TIME,
+                target.CREATE_USER = source.CREATE_USER,
+                target.UPDATE_TIME = source.UPDATE_TIME,
+                target.UPDATE_USER = source.UPDATE_USER,
+                target.START_DATE = source.START_DATE,
+                target.END_DATE = source.END_DATE,
+                target.MON_OBJECT_TYPE = source.MON_OBJECT_TYPE,
+                target.MON_JIANCANG_DATE = source.MON_JIANCANG_DATE,
+                target.MON_CLEAR_DATE = source.MON_CLEAR_DATE,
+                target.PRE_MON_RANGE = source.PRE_MON_RANGE,
+                target.WEEK_CONTROL = source.WEEK_CONTROL,
+                target.ACTIVE_MOMENT = source.ACTIVE_MOMENT,
+                target.NEW_BEHAVIOR = source.NEW_BEHAVIOR,
+                target.PRE_CONDITION = source.PRE_CONDITION,
+                target.SPECIAL_TYPE = source.SPECIAL_TYPE,
+                target.COMPLEX_CLASS_NAME = source.COMPLEX_CLASS_NAME,
+                target.ASSET_TYPE = source.ASSET_TYPE,
+                target.IS_MANAGER_INDEX = source.IS_MANAGER_INDEX,
+                target.FZFMXT = source.FZFMXT,
+                target.FZLD = source.FZLD,
+                target.FMLD = source.FMLD,
+                target.MON_TYPE = source.MON_TYPE,
+                target.BOND_SELL = source.BOND_SELL,
+                target.OPEN_CLOSE_CONF = source.OPEN_CLOSE_CONF,
+                target.INDEX_TYPE = source.INDEX_TYPE,
+                target.OPEN_CLOSE_CONF_DETAIL = source.OPEN_CLOSE_CONF_DETAIL,
+                target.PRE_CHK_USER = source.PRE_CHK_USER,
+                target.CONFIG_MODE = source.CONFIG_MODE,
+                target.PARSE_MODE = source.PARSE_MODE
+        WHEN NOT MATCHED THEN
+            INSERT (
+                INDEX_ID, SYSTEM_ID, NAME, DESCRIPTION, MON_OBJECT, MAJOR_CLASS, SUBCLASS, BEHAVIOR, PRD_TYPE,
+                CONTROL_TYPE, POLICY_SOURCE, POLICY_CHAPTER, MOMENT, BIZ_SOURCE_DATE, LIMITED_ILLEGAL_DAYS,
+                PENETRATE, PENETRATE_LEVEL, ILLEGAL_TYPE, TREE_ID, OPT_USER, CHK_USER, STATE, CREATE_TIME,
+                CREATE_USER, UPDATE_TIME, UPDATE_USER, START_DATE, END_DATE, MON_OBJECT_TYPE, MON_JIANCANG_DATE,
+                MON_CLEAR_DATE, PRE_MON_RANGE, WEEK_CONTROL, ACTIVE_MOMENT, NEW_BEHAVIOR, PRE_CONDITION,
+                SPECIAL_TYPE, COMPLEX_CLASS_NAME, ASSET_TYPE, IS_MANAGER_INDEX, FZFMXT, FZLD, FMLD, MON_TYPE,
+                BOND_SELL, OPEN_CLOSE_CONF, INDEX_TYPE, OPEN_CLOSE_CONF_DETAIL, PRE_CHK_USER, CONFIG_MODE, PARSE_MODE
+            ) VALUES (
+                source.INDEX_ID, source.SYSTEM_ID, source.NAME, source.DESCRIPTION, source.MON_OBJECT, source.MAJOR_CLASS, source.SUBCLASS, source.BEHAVIOR, source.PRD_TYPE,
+                source.CONTROL_TYPE, source.POLICY_SOURCE, source.POLICY_CHAPTER, source.MOMENT, source.BIZ_SOURCE_DATE, source.LIMITED_ILLEGAL_DAYS,
+                source.PENETRATE, source.PENETRATE_LEVEL, source.ILLEGAL_TYPE, source.TREE_ID, source.OPT_USER, source.CHK_USER, source.STATE, source.CREATE_TIME,
+                source.CREATE_USER, source.UPDATE_TIME, source.UPDATE_USER, source.START_DATE, source.END_DATE, source.MON_OBJECT_TYPE, source.MON_JIANCANG_DATE,
+                source.MON_CLEAR_DATE, source.PRE_MON_RANGE, source.WEEK_CONTROL, source.ACTIVE_MOMENT, source.NEW_BEHAVIOR, source.PRE_CONDITION,
+                source.SPECIAL_TYPE, source.COMPLEX_CLASS_NAME, source.ASSET_TYPE, source.IS_MANAGER_INDEX, source.FZFMXT, source.FZLD, source.FMLD, source.MON_TYPE,
+                source.BOND_SELL, source.OPEN_CLOSE_CONF, source.INDEX_TYPE, source.OPEN_CLOSE_CONF_DETAIL, source.PRE_CHK_USER, source.CONFIG_MODE, source.PARSE_MODE
+            )
+    </update>
+
+</mapper>

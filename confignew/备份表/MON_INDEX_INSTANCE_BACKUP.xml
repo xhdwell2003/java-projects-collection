@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.your.package.MonIndexInstanceBackupMapper">
+
+    <update id="backupOrUpdateFromSource">
+        MERGE INTO TGCORE.MON_INDEX_INSTANCE_BACKUP target
+        USING (
+            SELECT * FROM TGCORE.MON_INDEX_INSTANCE
+            <where>
+                <if test="indexId != null and indexId != ''">
+                    INDEX_ID = #{indexId}
+                </if>
+            </where>
+        ) source
+        ON (
+            target.SYSTEM_ID = source.SYSTEM_ID AND
+            target.INSTANCE_ID = source.INSTANCE_ID
+        )
+        WHEN MATCHED THEN
+            UPDATE SET
+                target.INDEX_ID = source.INDEX_ID,
+                target.MON_OBJECT = source.MON_OBJECT,
+                target.MON_OBJECT_TYPE = source.MON_OBJECT_TYPE,
+                target.MON_LEVEL = source.MON_LEVEL,
+                target.START_DATE = source.START_DATE,
+                target.END_DATE = source.END_DATE,
+                target.OPT_USER = source.OPT_USER,
+                target.CHK_USER = source.CHK_USER,
+                target.STATE = source.STATE,
+                target.CREATE_USER = source.CREATE_USER,
+                target.UPDATE_USER = source.UPDATE_USER,
+                target.CREATE_TIME = source.CREATE_TIME,
+                target.UPDATE_TIME = source.UPDATE_TIME,
+                target.USE_STATE = source.USE_STATE,
+                target.SUCCESS_NUM = source.SUCCESS_NUM,
+                target.PRE_SUCCESS_NUM = source.PRE_SUCCESS_NUM,
+                target.PRE_MON = source.PRE_MON,
+                target.IS_PENERATED = source.IS_PENERATED,
+                target.PRD_UNION = source.PRD_UNION,
+                target.GROUP_ID = source.GROUP_ID,
+                target.UNION_TYPE = source.UNION_TYPE,
+                target.UNION_INSTANCE_ID = source.UNION_INSTANCE_ID,
+                target.PRE_CHK_USER = source.PRE_CHK_USER
+        WHEN NOT MATCHED THEN
+            INSERT (
+                INSTANCE_ID, INDEX_ID, SYSTEM_ID, MON_OBJECT, MON_OBJECT_TYPE, MON_LEVEL, START_DATE, END_DATE,
+                OPT_USER, CHK_USER, STATE, CREATE_USER, UPDATE_USER, CREATE_TIME, UPDATE_TIME, USE_STATE,
+                SUCCESS_NUM, PRE_SUCCESS_NUM, PRE_MON, IS_PENERATED, PRD_UNION, GROUP_ID, UNION_TYPE,
+                UNION_INSTANCE_ID, PRE_CHK_USER
+            ) VALUES (
+                source.INSTANCE_ID, source.INDEX_ID, source.SYSTEM_ID, source.MON_OBJECT, source.MON_OBJECT_TYPE, source.MON_LEVEL, source.START_DATE, source.END_DATE,
+                source.OPT_USER, source.CHK_USER, source.STATE, source.CREATE_USER, source.UPDATE_USER, source.CREATE_TIME, source.UPDATE_TIME, source.USE_STATE,
+                source.SUCCESS_NUM, source.PRE_SUCCESS_NUM, source.PRE_MON, source.IS_PENERATED, source.PRD_UNION, source.GROUP_ID, source.UNION_TYPE,
+                source.UNION_INSTANCE_ID, source.PRE_CHK_USER
+            )
+    </update>
+
+</mapper>

@@ -149,42 +149,42 @@ public class InstanceDataResult {
     private DataCell aggregateColumn(DataCol col, List<RowData> groupRows, Map<String, String> groupKey, int resultId) {
         String colName = col.getName();
         String colType = col.getType();
-        
+
         if (groupKey.containsKey(colName)) {
             // 分组字段，取第一个值
             String firstValue = groupRows.stream()
-                .flatMap(row -> row.getCellList().stream())
-                .filter(cell -> colName.equals(cell.getColName()))
-                .findFirst()
-                .map(DataCell::getValue)
-                .orElse("");
-            
+                    .flatMap(row -> row.getCellList().stream())
+                    .filter(cell -> colName.equals(cell.getColName()))
+                    .findFirst()
+                    .map(DataCell::getValue)
+                    .orElse("");
+
             return new DataCell(String.valueOf(resultId), colName, firstValue);
         } else if ("DECIMAL".equals(colType) || "INTEGER".equals(colType)) {
             // 数值类型，使用BigDecimal求和确保精度
-            BigDecimal sum = groupRows.stream()
-                .flatMap(row -> row.getCellList().stream())
-                .filter(cell -> colName.equals(cell.getColName()))
-                .filter(cell -> cell.getValue() != null && !cell.getValue().trim().isEmpty())
-                .map(cell -> {
-                    try {
-                        return new BigDecimal(cell.getValue());
-                    } catch (NumberFormatException e) {
-                        return BigDecimal.ZERO;
-                    }
-                })
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-            
-            return new DataCell(String.valueOf(resultId), colName, sum.stripTrailingZeros().toPlainString());
+            java.math.BigDecimal sum = groupRows.stream()
+                    .flatMap(row -> row.getCellList().stream())
+                    .filter(cell -> colName.equals(cell.getColName()))
+                    .filter(cell -> cell.getValue() != null && !cell.getValue().trim().isEmpty())
+                    .map(cell -> {
+                        try {
+                            return new java.math.BigDecimal(cell.getValue());
+                        } catch (NumberFormatException e) {
+                            return java.math.BigDecimal.ZERO;
+                        }
+                    })
+                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+            return new DataCell(String.valueOf(resultId), colName, sum.toPlainString());
         } else {
             // 非数值类型，取第一条记录
             String firstValue = groupRows.stream()
-                .flatMap(row -> row.getCellList().stream())
-                .filter(cell -> colName.equals(cell.getColName()))
-                .findFirst()
-                .map(cell -> cell.getValue() != null ? cell.getValue() : "")
-                .orElse("");
-            
+                    .flatMap(row -> row.getCellList().stream())
+                    .filter(cell -> colName.equals(cell.getColName()))
+                    .findFirst()
+                    .map(cell -> cell.getValue() != null ? cell.getValue() : "")
+                    .orElse("");
+
             return new DataCell(String.valueOf(resultId), colName, firstValue);
         }
     }

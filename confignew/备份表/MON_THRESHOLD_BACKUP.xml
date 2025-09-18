@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.your.package.MonThresholdBackupMapper">
+
+    <update id="backupOrUpdateFromSource">
+        MERGE INTO TGCORE.MON_THRESHOLD_BACKUP target
+        USING (
+            SELECT * FROM TGCORE.MON_THRESHOLD
+            <where>
+                <if test="instanceId != null and instanceId != ''">
+                    INSTANCE_ID = #{instanceId}
+                </if>
+            </where>
+        ) source
+        ON (
+            target.THRESHOLD_ID = source.THRESHOLD_ID AND
+            target.SYSTEM_ID = source.SYSTEM_ID
+        )
+        WHEN MATCHED THEN
+            UPDATE SET
+                target.INSTANCE_ID = source.INSTANCE_ID,
+                target.CONDITION_TYPE = source.CONDITION_TYPE,
+                target.OUTPUT_COLUMN = source.OUTPUT_COLUMN,
+                target.UNIT = source.UNIT,
+                target."PARAMETER" = source."PARAMETER",
+                target.CREATE_USER = source.CREATE_USER,
+                target.UPDATE_USER = source.UPDATE_USER,
+                target.CREATE_TIME = source.CREATE_TIME,
+                target.UPDATE_TIME = source.UPDATE_TIME
+        WHEN NOT MATCHED THEN
+            INSERT (
+                THRESHOLD_ID, SYSTEM_ID, INSTANCE_ID, CONDITION_TYPE, OUTPUT_COLUMN,
+                UNIT, "PARAMETER", CREATE_USER, UPDATE_USER, CREATE_TIME, UPDATE_TIME
+            ) VALUES (
+                source.THRESHOLD_ID, source.SYSTEM_ID, source.INSTANCE_ID, source.CONDITION_TYPE, source.OUTPUT_COLUMN,
+                source.UNIT, source."PARAMETER", source.CREATE_USER, source.UPDATE_USER, source.CREATE_TIME, source.UPDATE_TIME
+            )
+    </update>
+
+</mapper>
