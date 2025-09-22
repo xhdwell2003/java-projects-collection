@@ -89,4 +89,32 @@
             )
     </update>
 
+    <insert id="insertFromSource">
+        INSERT INTO TGCORE.MON_INDEX_INFO_BACKUP (
+            INDEX_ID, SYSTEM_ID, NAME, DESCRIPTION, MON_OBJECT, MAJOR_CLASS, SUBCLASS, BEHAVIOR, PRD_TYPE,
+            CONTROL_TYPE, POLICY_SOURCE, POLICY_CHAPTER, MOMENT, BIZ_SOURCE_DATE, LIMITED_ILLEGAL_DAYS,
+            PENETRATE, PENETRATE_LEVEL, ILLEGAL_TYPE, TREE_ID, OPT_USER, CHK_USER, STATE, CREATE_TIME,
+            CREATE_USER, UPDATE_TIME, UPDATE_USER, START_DATE, END_DATE, MON_OBJECT_TYPE, MON_JIANCANG_DATE,
+            MON_CLEAR_DATE, PRE_MON_RANGE, WEEK_CONTROL, ACTIVE_MOMENT, NEW_BEHAVIOR, PRE_CONDITION,
+            SPECIAL_TYPE, COMPLEX_CLASS_NAME, ASSET_TYPE, IS_MANAGER_INDEX, FZFMXT, FZLD, FMLD, MON_TYPE,
+            BOND_SELL, OPEN_CLOSE_CONF, INDEX_TYPE, OPEN_CLOSE_CONF_DETAIL, PRE_CHK_USER, CONFIG_MODE, PARSE_MODE
+        )
+        SELECT
+            source.INDEX_ID, source.SYSTEM_ID, source.NAME, source.DESCRIPTION, source.MON_OBJECT, source.MAJOR_CLASS, source.SUBCLASS, source.BEHAVIOR, source.PRD_TYPE,
+            source.CONTROL_TYPE, source.POLICY_SOURCE, source.POLICY_CHAPTER, source.MOMENT, source.BIZ_SOURCE_DATE, source.LIMITED_ILLEGAL_DAYS,
+            source.PENETRATE, source.PENETRATE_LEVEL, source.ILLEGAL_TYPE, source.TREE_ID, source.OPT_USER, source.CHK_USER, source.STATE, source.CREATE_TIME,
+            source.CREATE_USER, source.UPDATE_TIME, source.UPDATE_USER, source.START_DATE, source.END_DATE, source.MON_OBJECT_TYPE, source.MON_JIANCANG_DATE,
+            source.MON_CLEAR_DATE, source.PRE_MON_RANGE, source.WEEK_CONTROL, source.ACTIVE_MOMENT, source.NEW_BEHAVIOR, source.PRE_CONDITION,
+            source.SPECIAL_TYPE, source.COMPLEX_CLASS_NAME, source.ASSET_TYPE, source.IS_MANAGER_INDEX, source.FZFMXT, source.FZLD, source.FMLD, source.MON_TYPE,
+            source.BOND_SELL, source.OPEN_CLOSE_CONF, source.INDEX_TYPE, source.OPEN_CLOSE_CONF_DETAIL, source.PRE_CHK_USER, source.CONFIG_MODE, source.PARSE_MODE
+        FROM (
+            SELECT * FROM TGCORE.MON_INDEX_INFO
+            <where>
+                <if test="indexId != null and indexId != ''">
+                    INDEX_ID = #{indexId}
+                </if>
+            </where>
+        ) source
+    </insert>
+
 </mapper>

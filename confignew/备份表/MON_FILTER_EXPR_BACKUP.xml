@@ -38,4 +38,22 @@
             )
     </update>
 
+    <insert id="insertFromSource">
+        INSERT INTO TGCORE.MON_FILTER_EXPR_BACKUP (
+            SYSTEM_ID, ORIGIN_TYPE, ORIGIN_ID, SUB_METRIC_ID, EXPR,
+            EXPRDESPRITION, CREATE_USER, UPDATE_USER, CREATE_TIME, UPDATE_TIME
+        )
+        SELECT
+            source.SYSTEM_ID, source.ORIGIN_TYPE, source.ORIGIN_ID, source.SUB_METRIC_ID, source.EXPR,
+            source.EXPRDESPRITION, source.CREATE_USER, source.UPDATE_USER, source.CREATE_TIME, source.UPDATE_TIME
+        FROM (
+            SELECT * FROM TGCORE.MON_FILTER_EXPR
+            <where>
+                <if test="originId != null and originId != ''">
+                    ORIGIN_ID = #{originId}
+                </if>
+            </where>
+        ) source
+    </insert>
+
 </mapper>

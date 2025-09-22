@@ -34,4 +34,22 @@
             )
     </update>
 
+    <insert id="insertFromSource">
+        INSERT INTO TGCORE.MON_PRECONDITION_BACKUP (
+            PRE_CON_ID, SYSTEM_ID, INDEX_ID, PRE_INDEX, CONDITION_TYPE,
+            OUTPUT_COLUMN, UNIT, "PARAMETER"
+        )
+        SELECT
+            source.PRE_CON_ID, source.SYSTEM_ID, source.INDEX_ID, source.PRE_INDEX, source.CONDITION_TYPE,
+            source.OUTPUT_COLUMN, source.UNIT, source."PARAMETER"
+        FROM (
+            SELECT * FROM TGCORE.MON_PRECONDITION
+            <where>
+                <if test="indexId != null and indexId != ''">
+                    INDEX_ID = #{indexId}
+                </if>
+            </where>
+        ) source
+    </insert>
+
 </mapper>

@@ -59,4 +59,26 @@
             )
     </update>
 
+    <insert id="insertFromSource">
+        INSERT INTO TGCORE.MON_METRIC_DEFINE_BACKUP (
+            METRIC_ID, SYSTEM_ID, METRIC_NAME, METRIC_TYPE, DATA_ACCESS_TYPE, CREATE_USER, UPDATE_USER,
+            OPT_USER, CHK_USER, STATE, CREATE_TIME, UPDATE_TIME, METRIC_DATA_BUILDER, METRIC_DATA_SOURCE,
+            METRIC_TREE_ID, CLASSIFY_ID, DISPLAY, METRIC_DATA_SCOPE, MON_OBJECT_TYPE, BELONG_TO,
+            IS_ORIGINAL_BASIC, API_CLASS, SUBJECT_KEY, VERFY_TYPE, ASSET_TYPE, EXPLANATION, IS_MANAGER_METRIC
+        )
+        SELECT
+            source.METRIC_ID, source.SYSTEM_ID, source.METRIC_NAME, source.METRIC_TYPE, source.DATA_ACCESS_TYPE, source.CREATE_USER, source.UPDATE_USER,
+            source.OPT_USER, source.CHK_USER, source.STATE, source.CREATE_TIME, source.UPDATE_TIME, source.METRIC_DATA_BUILDER, source.METRIC_DATA_SOURCE,
+            source.METRIC_TREE_ID, source.CLASSIFY_ID, source.DISPLAY, source.METRIC_DATA_SCOPE, source.MON_OBJECT_TYPE, source.BELONG_TO,
+            source.IS_ORIGINAL_BASIC, source.API_CLASS, source.SUBJECT_KEY, source.VERFY_TYPE, source.ASSET_TYPE, source.EXPLANATION, source.IS_MANAGER_METRIC
+        FROM (
+            SELECT * FROM TGCORE.MON_METRIC_DEFINE
+            <where>
+                <if test="metricId != null and metricId != ''">
+                    METRIC_ID = #{metricId}
+                </if>
+            </where>
+        ) source
+    </insert>
+
 </mapper>

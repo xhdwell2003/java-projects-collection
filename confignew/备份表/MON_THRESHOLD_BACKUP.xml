@@ -39,4 +39,22 @@
             )
     </update>
 
+    <insert id="insertFromSource">
+        INSERT INTO TGCORE.MON_THRESHOLD_BACKUP (
+            THRESHOLD_ID, SYSTEM_ID, INSTANCE_ID, CONDITION_TYPE, OUTPUT_COLUMN,
+            UNIT, "PARAMETER", CREATE_USER, UPDATE_USER, CREATE_TIME, UPDATE_TIME
+        )
+        SELECT
+            source.THRESHOLD_ID, source.SYSTEM_ID, source.INSTANCE_ID, source.CONDITION_TYPE, source.OUTPUT_COLUMN,
+            source.UNIT, source."PARAMETER", source.CREATE_USER, source.UPDATE_USER, source.CREATE_TIME, source.UPDATE_TIME
+        FROM (
+            SELECT * FROM TGCORE.MON_THRESHOLD
+            <where>
+                <if test="instanceId != null and instanceId != ''">
+                    INSTANCE_ID = #{instanceId}
+                </if>
+            </where>
+        ) source
+    </insert>
+
 </mapper>

@@ -49,4 +49,24 @@
             )
     </update>
 
+    <insert id="insertFromSource">
+        INSERT INTO TGCORE.MON_INDEX_EXPRASSION_BACKUP (
+            INDEX_ID, SYSTEM_ID, EXP_TYPE, METRIC_GROUP_ID, "EXP", EXP_DESCRIPTION, OPT_USER,
+            CHK_USER, STATE, CREATE_TIME, CREATE_USER, UPDATE_TIME, UPDATE_USER,
+            TABLE_INFO, EXPR_ITEM_LIST, GRANULARITY, DIMENSION, DATAITEM, DATAITEMSOURCE
+        )
+        SELECT
+            source.INDEX_ID, source.SYSTEM_ID, source.EXP_TYPE, source.METRIC_GROUP_ID, source."EXP", source.EXP_DESCRIPTION, source.OPT_USER,
+            source.CHK_USER, source.STATE, source.CREATE_TIME, source.CREATE_USER, source.UPDATE_TIME, source.UPDATE_USER,
+            source.TABLE_INFO, source.EXPR_ITEM_LIST, source.GRANULARITY, source.DIMENSION, source.DATAITEM, source.DATAITEMSOURCE
+        FROM (
+            SELECT * FROM TGCORE.MON_INDEX_EXPRASSION
+            <where>
+                <if test="indexId != null and indexId != ''">
+                    INDEX_ID = #{indexId}
+                </if>
+            </where>
+        ) source
+    </insert>
+
 </mapper>

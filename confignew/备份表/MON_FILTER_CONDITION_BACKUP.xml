@@ -50,4 +50,26 @@
             )
     </update>
 
+    <insert id="insertFromSource">
+        INSERT INTO TGCORE.MON_FILTER_CONDITION_BACKUP (
+            FILTER_CONDITION_ID, SYSTEM_ID, DATA_ITEM_ID, ORIGIN_ID, SUB_METRIC_ID,
+            RELATION_TYPE, RELATION, FILTER_RENGE_TYPE, FILTER_RENGE, STATE,
+            CREATE_USER, UPDATE_USER, OPT_USER, CHK_USER, CREATE_TIME,
+            UPDATE_TIME, ORIGIN_TYPE, UNIT, ADDPARAMNAME, ADDPARAMVALUE
+        )
+        SELECT
+            source.FILTER_CONDITION_ID, source.SYSTEM_ID, source.DATA_ITEM_ID, source.ORIGIN_ID, source.SUB_METRIC_ID,
+            source.RELATION_TYPE, source.RELATION, source.FILTER_RENGE_TYPE, source.FILTER_RENGE, source.STATE,
+            source.CREATE_USER, source.UPDATE_USER, source.OPT_USER, source.CHK_USER, source.CREATE_TIME,
+            source.UPDATE_TIME, source.ORIGIN_TYPE, source.UNIT, source.ADDPARAMNAME, source.ADDPARAMVALUE
+        FROM (
+            SELECT * FROM TGCORE.MON_FILTER_CONDITION
+            <where>
+                <if test="originId != null and originId != ''">
+                    ORIGIN_ID = #{originId}
+                </if>
+            </where>
+        ) source
+    </insert>
+
 </mapper>

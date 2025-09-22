@@ -57,4 +57,26 @@
             )
     </update>
 
+    <insert id="insertFromSource">
+        INSERT INTO TGCORE.MON_INDEX_INSTANCE_BACKUP (
+            INSTANCE_ID, INDEX_ID, SYSTEM_ID, MON_OBJECT, MON_OBJECT_TYPE, MON_LEVEL, START_DATE, END_DATE,
+            OPT_USER, CHK_USER, STATE, CREATE_USER, UPDATE_USER, CREATE_TIME, UPDATE_TIME, USE_STATE,
+            SUCCESS_NUM, PRE_SUCCESS_NUM, PRE_MON, IS_PENERATED, PRD_UNION, GROUP_ID, UNION_TYPE,
+            UNION_INSTANCE_ID, PRE_CHK_USER
+        )
+        SELECT
+            source.INSTANCE_ID, source.INDEX_ID, source.SYSTEM_ID, source.MON_OBJECT, source.MON_OBJECT_TYPE, source.MON_LEVEL, source.START_DATE, source.END_DATE,
+            source.OPT_USER, source.CHK_USER, source.STATE, source.CREATE_USER, source.UPDATE_USER, source.CREATE_TIME, source.UPDATE_TIME, source.USE_STATE,
+            source.SUCCESS_NUM, source.PRE_SUCCESS_NUM, source.PRE_MON, source.IS_PENERATED, source.PRD_UNION, source.GROUP_ID, source.UNION_TYPE,
+            source.UNION_INSTANCE_ID, source.PRE_CHK_USER
+        FROM (
+            SELECT * FROM TGCORE.MON_INDEX_INSTANCE
+            <where>
+                <if test="indexId != null and indexId != ''">
+                    INDEX_ID = #{indexId}
+                </if>
+            </where>
+        ) source
+    </insert>
+
 </mapper>

@@ -50,4 +50,26 @@
             )
     </update>
 
+    <insert id="insertFromSource">
+        INSERT INTO TGCORE.MON_METRIC_DATAITEM_BACKUP (
+            DATA_ITEM_ID, ORIGIN_ID, SYSTEM_ID, ORIGIN_TYPE, DATA_ITEM_FIELD, DATA_ITEM_NAME,
+            MON_OBJECT_MARK, SUB_DIMENSION_MARK, DATA_SOURCE_TYPE, DATA_SOURCE, OUT_COLUM_MARK,
+            DATA_TYPE, STATE, CREATE_USER, UPDATE_USER, OPT_USER, CHK_USER, CREATE_TIME,
+            UPDATE_TIME, DATA_SOURCE_DESCRIPTION
+        )
+        SELECT
+            source.DATA_ITEM_ID, source.ORIGIN_ID, source.SYSTEM_ID, source.ORIGIN_TYPE, source.DATA_ITEM_FIELD, source.DATA_ITEM_NAME,
+            source.MON_OBJECT_MARK, source.SUB_DIMENSION_MARK, source.DATA_SOURCE_TYPE, source.DATA_SOURCE, source.OUT_COLUM_MARK,
+            source.DATA_TYPE, source.STATE, source.CREATE_USER, source.UPDATE_USER, source.OPT_USER, source.CHK_USER, source.CREATE_TIME,
+            source.UPDATE_TIME, source.DATA_SOURCE_DESCRIPTION
+        FROM (
+            SELECT * FROM TGCORE.MON_METRIC_DATAITEM
+            <where>
+                <if test="originId != null and originId != ''">
+                    ORIGIN_ID = #{originId}
+                </if>
+            </where>
+        ) source
+    </insert>
+
 </mapper>
